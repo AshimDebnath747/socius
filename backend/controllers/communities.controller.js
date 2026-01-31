@@ -1,12 +1,16 @@
-import { createCommunity } from "../services/communities.service.js"
+import { createCommunity, getCommunities, getCommunityById } from "../services/communities.service.js"
 
 export const createCommunityController = async (req, res) => {
+
     try {
-        const result = await createCommunity(req.body)
+        const userid = req.user.id
+        const time = new Date();
+        const { name, description, rules, is_private } = req.body
+        const result = await createCommunity(name, description, rules, is_private, userid, time)
 
         res.status(201).json({
             success: true,
-            message: "json updated successfully",
+            message: "community created successfully",
             data: result
         })
 
@@ -14,7 +18,44 @@ export const createCommunityController = async (req, res) => {
         console.log("message:", err.message)
         return res.status(200).json({
             success: false,
-            message: "user could not be updated!",
+            message: "community could not be created!",
+            data: err.message
+        })
+    }
+}
+
+export const getCommunitiesController = async (req, res) => {
+    try {
+        const result = await getCommunities()
+        res.status(201).json({
+            success: true,
+            message: "communities fetched successfully",
+            data: result
+        })
+    } catch (err) {
+        console.log("message:", err.message)
+        return res.status(200).json({
+            success: false,
+            message: "communities could not be fetched!",
+            data: err.message
+        })
+    }
+}
+
+export const getCommunityByIdController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const result = await getCommunityById(id)
+        res.status(201).json({
+            success: true,
+            message: "community fetched successfully",
+            data: result
+        })
+    } catch (err) {
+        console.log("message:", err.message)
+        return res.status(200).json({
+            success: false,
+            message: "community could not be fetched!",
             data: err.message
         })
     }

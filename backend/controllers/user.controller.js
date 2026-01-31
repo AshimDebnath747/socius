@@ -22,7 +22,7 @@ export const getUserByIdController = async (req, res) => {
 export const putUserController = async (req, res) => {
     const { name, email, skills, id } = req.body
     try {
-        const result = putUser(name, email, skills, id)
+        const result = await putUser(name, email, skills, id)
         return res.status(201).json({
             success: true,
             message: "user updated successfully",

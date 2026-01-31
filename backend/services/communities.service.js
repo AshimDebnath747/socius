@@ -20,11 +20,30 @@ async function generateUniqueSlug(name) {
 }
 
 
-export const createCommunity = async ({ name, description, rules, is_private }) => {
+export const createCommunity = async (name, description, rules, is_private, userid, time) => {
     const slug = await generateUniqueSlug(name)
     const query = `INSERT INTO community (name ,slug , description , rules , is_private) VALUES ($1 , $2 , $3 , $4 ,$5) RETURNING id`;
 
-    const { rows } = await pool.query(query, [name, slug, description, rules, is_private]);
-    return rows[0];
+    const { rows: rows } = await pool.query(query, [name, slug, description, rules, is_private]);
+    const communityId = rows[0].id
+    const query2 = `INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING id`;
+    const { rows: rows2 } = await pool.query(query2, [communityId, userid, "owner", time]);
+    return rows2[0];
 
+}
+
+export const getCommunities = async () => {
+    const query = 'SELECT * FROM community'
+    const { rows } = await pool.query(query)
+    return rows
+}
+
+export const getCommunityById = async (id) => {
+    const query = 'SELECT * FROM community WHERE id=$1';
+    const { rows } = await pool.query(query, [id])
+    if (!rows[0]) {
+        throw new Error("no such community id!")
+
+    }
+    return rows[0]
 }
