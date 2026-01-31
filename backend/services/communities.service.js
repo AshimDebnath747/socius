@@ -47,3 +47,43 @@ export const getCommunityById = async (id) => {
     }
     return rows[0]
 }
+
+export const joinCommunity = async (communityId, userId, time) => {
+
+    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
+    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
+    console.log("join", rows1)
+    if (rows1[0]) {
+        throw new Error("this user is already in this community")
+    }
+
+    const query2 = 'SELECT * FROM community WHERE id = $1';
+    const { rows: rows2 } = await pool.query(query2, [communityId])
+    if (!rows2[0]) {
+        throw new Error("this community does not exist")
+    }
+
+    const query3 = 'SELECT * FROM users WHERE id = $1';
+    const { rows: rows3 } = await pool.query(query3, [userId])
+    if (!rows3[0]) {
+        throw new Error("this user does not exist")
+    }
+
+
+    const query = 'INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING *';
+    const { rows } = await pool.query(query, [communityId, userId, "member", time])
+    return rows
+}
+
+export const leaveCommunity = async (communityId, userId) => {
+    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
+    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
+
+    if (!rows1[0]) {
+        throw new Error("this user does not exist in this community")
+    }
+    const query = 'DELETE FROM communitymember where community_id = $1 and user_id = $2';
+    const { rows } = await pool.query(query, [communityId, userId])
+    console.log(rows)
+    return rows
+}
