@@ -84,6 +84,55 @@ export const leaveCommunity = async (communityId, userId) => {
     }
     const query = 'DELETE FROM communitymember where community_id = $1 and user_id = $2';
     const { rows } = await pool.query(query, [communityId, userId])
+    return rows
+}
+
+export const getAllCommunityMembers = async (communityId) => {
+    const query1 = 'SELECT id from community where id = $1';
+
+    const { rows: rows1 } = await pool.query(query1, [communityId])
+
+    if (!rows1[0]) {
+        throw new Error("There is no such community!")
+    }
+
+    const query = 'SELECT u.id , u.name , u.email , cm.role , cm.joined_at FROM communitymember cm JOIN users u ON u.id = cm.user_id WHERE cm.community_id = $1'
+
+    const { rows } = await pool.query(query, [communityId])
+
+    console.log(rows)
+    return rows
+}
+
+export const changeRole = async (AdminId, role, communityId, userId) => {
+
+    if (!['member', 'moderator'].includes(role)) {
+        throw new Error("role not valid!")
+    }
+    const query1 = 'SELECT role FROM communitymember WHERE community_id = $1 and user_id = $2'
+
+    const { rows: rows1 } = await pool.query(query1, [communityId, AdminId])
+
+    if (!rows1[0]) {
+        throw new Error("Bro you do not belong to this community!")
+    }
+    console.log(rows1[0])
+    if (rows1[0].role === 'member') {
+        throw new Error("Bro you can not change role in this community!")
+    }
+    const query2 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2'
+    const { rows: rows2 } = await pool.query(query2, [communityId, userId])
+
+    if (!rows2[0]) {
+        throw new Error("This user does not exist in this community!")
+    }
+
+    if (rows2[0].role == "owner") {
+        throw new Error("you can not change this user's role!")
+    }
+    const rowId = rows2[0].id
+    const query = 'UPDATE communitymember SET role = $1 WHERE id = $2 RETURNING *';
+    const { rows } = await pool.query(query, [role, rowId])
     console.log(rows)
     return rows
 }
