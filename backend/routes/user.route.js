@@ -6,7 +6,7 @@ import { getUserByIdController, putUserController } from "../controllers/user.co
 const router = express.Router()
 
 
-//router.use(authMiddleware)
+router.use(authMiddleware)
 router.get("/:id", validate(updateUserSchema), getUserByIdController)
 router.put("/me", putUserController)
 

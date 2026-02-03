@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.route.js"
 import userRouter from "./routes/user.route.js"
 import CommunityRouter from "./routes/communities.route.js"
+import HelpRouter from "./routes/help.route.js"
 import "./config/passport.js"
 import passport from 'passport';
 const app = express();
@@ -15,5 +16,6 @@ app.use(cookieParser());
 app.use('/api/auth', authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/communities", CommunityRouter)
+app.use("/api/help-requests", HelpRouter)
 
 app.listen(8000, () => console.log('Server running on http://localhost:8000'));
