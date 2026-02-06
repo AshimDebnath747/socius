@@ -17,3 +17,9 @@ export const getHelpRequestQuery = z.object({
 
     status: z.enum(["open", "closed"]).optional()
 });
+
+export const helpRequestAcceptValidation = z.object({
+    helpRequestId: z.number().int(),
+    mode: z.string()
+})
+
