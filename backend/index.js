@@ -7,6 +7,7 @@ import CommunityRouter from "./routes/communities.route.js"
 import HelpRouter from "./routes/help.route.js"
 import sessionRouter from "./routes/session.route.js"
 import reviewRouter from "./routes/reviews.route.js"
+import notificationRouter from './routes/notifications.route.js'
 import "./config/passport.js"
 import passport from 'passport';
 const app = express();
@@ -21,5 +22,6 @@ app.use("/api/communities", CommunityRouter)
 app.use("/api/help-requests", HelpRouter)
 app.use("/api/sessions", sessionRouter)
 app.use("/api/review", reviewRouter)
+app.use("/api/notifications", notificationRouter)
 
 app.listen(8000, () => console.log('Server running on http://localhost:8000'));
