@@ -109,3 +109,26 @@ export const cancelSessionById = async (id) => {
         client.release()
     }
 }
+
+export const getMessages = async (id, userId) => {
+    const { rows } = await pool.query("SELECT requester_id , helper_id from session where id=$1", [id])
+
+    if (!rows[0]) {
+        throw new Error("There is no such session!")
+    }
+
+    session = rows[0]
+
+    if (session.requester_id !== userId && session.helper_id !== userId) {
+        throw new Error("Unauthorized user!")
+    }
+
+    const { rows: messages } = await pool.query(
+        `SELECT * FROM messages
+     WHERE session_id=$1
+     ORDER BY created_at ASC`,
+        [id]
+    );
+
+    return messages
+}

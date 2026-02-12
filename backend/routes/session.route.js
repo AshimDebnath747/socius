@@ -2,7 +2,7 @@ import express from 'express'
 import { validate } from '../middlewares/validate.middleware.js'
 import { authMiddleware } from '../middlewares/auth.middleware.js'
 import { helpRequestAcceptValidation } from '../validators/help.validator.js'
-import { helpRequestAcceptController, getSessionByIdController, endSessionByIdController, cancelSessionByIdController } from '../controllers/session.controller.js'
+import { helpRequestAcceptController, getSessionByIdController, endSessionByIdController, cancelSessionByIdController, getMessagesController } from '../controllers/session.controller.js'
 
 const router = express.Router()
 
@@ -13,6 +13,7 @@ router.post("/request", validate(helpRequestAcceptValidation), helpRequestAccept
 
 //get request
 router.get("/:id", getSessionByIdController)
+router.get(":id/messages", getMessagesController)
 
 //put requests
 router.put("/:id/end", endSessionByIdController)

@@ -1,4 +1,4 @@
-import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById } from "../services/session.service.js"
+import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById, getMessages } from "../services/session.service.js"
 
 export const helpRequestAcceptController = async (req, res) => {
 
@@ -81,6 +81,30 @@ export const cancelSessionByIdController = async (req, res) => {
             message: "session fetched successfully",
             data: result
         })
+
+
+    } catch (err) {
+        console.log("message:", err.message)
+        return res.status(200).json({
+            success: false,
+            message: "session could not be fetched!",
+            data: err.message
+        })
+    }
+}
+
+export const getMessagesController = async (req, res) => {
+    try {
+        const { id } = req.params
+        const userId = req.user.id
+
+        const result = await getMessages(id, userId)
+        return res.status(201).json({
+            success: true,
+            message: "session fetched successfully",
+            data: result
+        })
+
 
 
     } catch (err) {
