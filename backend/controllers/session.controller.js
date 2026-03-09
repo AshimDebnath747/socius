@@ -1,16 +1,21 @@
 import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById, getMessages } from "../services/session.service.js"
 
+import { getIO } from "../sockets/index.js"
+
 export const helpRequestAcceptController = async (req, res) => {
 
     try {
         const { helpRequestId, mode } = req.body
         const helperId = req.user.id
 
-        const result = await helpRequestAccept(helpRequestId, helperId, mode)
+        const session = await helpRequestAccept(helpRequestId, helperId, mode)
+        const io = getIO();
+        io.to(`user-${session.requester_id}`).emit("join-session", session.id);
+        io.to(`user-${session.helper_id}`).emit("join-session", session.id);
         return res.status(201).json({
             success: true,
             message: "session posted successfully",
-            data: result
+            data: session
         })
 
 

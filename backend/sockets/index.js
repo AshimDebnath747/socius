@@ -1,9 +1,9 @@
 import { verifySocketAuth } from "./middleware.js";
 import { registerMessageEvents } from "./message.socket.js";
 import { registerSessionEvents } from "./session.socket.js";
-
+let _io
 export const initSocket = (io) => {
-
+    _io = io
     // Apply auth middleware
     io.use(verifySocketAuth);
 
@@ -23,3 +23,4 @@ export const initSocket = (io) => {
     });
 
 };
+export const getIO = () => _io;

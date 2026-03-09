@@ -36,7 +36,9 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
+    pingTimeout: 60000,   // 60 seconds to wait for pong
+    pingInterval: 25000,  // ping every 25 seconds
 });
 
 app.set("io", io);

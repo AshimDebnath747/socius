@@ -9,8 +9,22 @@ export const registerMessageEvents = (io, socket) => {
     socket.on("send-message", async ({ sessionId, content }) => {
         try {
             // Save to DB
+            console.log("sessionId:", sessionId);  // ← check this
+            console.log("content:", content);
+            const { rows: sessionRows } = await pool.query(
+                `SELECT * FROM session 
+             WHERE id = $1 
+             AND (requester_id = $2 OR helper_id = $2)
+             AND status = 'active'`,
+                [sessionId, socket.user.id]
+            );
+
+            if (!sessionRows[0]) {
+                return socket.emit("error", { message: "Unauthorized" });
+            }
+
             const { rows } = await pool.query(
-                `INSERT INTO message (session_id, sender_id, content)
+                `INSERT INTO messages (session_id, sender_id, content)
          VALUES ($1, $2, $3)
          RETURNING *`,
                 [sessionId, socket.user.id, content]

@@ -25,9 +25,9 @@ export const helpRequestAccept = async (helpRequestId, helperId, mode) => {
 
     const { rows: rows2 } = await pool.query(query2, [helpRequestId])
 
-    console.log(rows2)
+    console.log(rows1)
 
-    return rows2[0]
+    return rows1[0]
 }
 
 export const getSessionById = async (id) => {
