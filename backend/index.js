@@ -16,7 +16,11 @@ import { initSocket } from './sockets/index.js';
 const app = express();
 app.use(passport.initialize());
 app.use(express.json())
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({
+    origin: process.env.FEV, // frontend URL
+    credentials: true,               // <-- allow cookies
+}));
+console.log("enfdd:", process.env.FEV)
 app.use(cookieParser());
 
 app.use('/api/auth', authRouter);

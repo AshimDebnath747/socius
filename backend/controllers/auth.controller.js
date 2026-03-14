@@ -22,9 +22,8 @@ export const login = async (req, res) => {
     try {
         const { token, user } = await loginUser(req.body);
         res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,        // true in production (HTTPS)
-            sameSite: "strict",
+            sameSite: "none",  // required for cross-site cookies
+            secure: true,   // only over HTTPS
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         return res.status(201).json({
