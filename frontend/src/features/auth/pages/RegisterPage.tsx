@@ -1,5 +1,6 @@
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 /* 🔹 Local type */
 interface RegisterFormValues {
@@ -10,6 +11,7 @@ interface RegisterFormValues {
 
 const RegisterPage = () => {
   const { register, handleSubmit } = useForm<RegisterFormValues>();
+  const navigate = useNavigate();
 
   const onSubmit = (data: RegisterFormValues) => {
     console.log("Register data:", data);
@@ -49,6 +51,15 @@ const RegisterPage = () => {
             Register
           </Button>
         </form>
+
+        <Button
+          variant="text"
+          fullWidth
+          sx={{ mt: 2 }}
+          onClick={() => navigate("/login")}
+        >
+          Login
+        </Button>
       </Box>
     </Container>
   );

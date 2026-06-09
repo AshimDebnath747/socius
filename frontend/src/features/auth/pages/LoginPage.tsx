@@ -28,7 +28,7 @@ const LoginPage = () => {
 
   const API = import.meta.env.VITE_BACKEND_URL;
 
-  // Manual Login
+  // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const response = await fetch(`${API}/api/auth/login`, {
@@ -36,13 +36,13 @@ const LoginPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
+        credentials: "include", // 🔥 important for cookies
         body: JSON.stringify({
           email: data.email,
           password: data.password,
         }),
       });
-        console.log(onSubmit)
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -50,10 +50,9 @@ const LoginPage = () => {
       }
 
       console.log("Login success:", result);
-              console.log(onSubmit)
 
-
-      navigate("/"); // redirect after login
+      // 🔥 IMPORTANT CHANGE HERE
+      window.location.href = "/"; // force reload so auth check works
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
       alert(message);
@@ -102,6 +101,16 @@ const LoginPage = () => {
           >
             Enter your credentials to continue
           </Typography>
+
+          {/* Register Button */}
+          <Button
+            variant="text"
+            fullWidth
+            sx={{ mt: 2 }}
+            onClick={() => navigate("/register")}
+          >
+            Register
+          </Button>
 
           <Box component="form" onSubmit={handleSubmit(onSubmit)}>
             {/* Email */}
