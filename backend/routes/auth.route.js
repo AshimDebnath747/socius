@@ -1,12 +1,13 @@
 import express from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
 import { loginSchema, signupSchema } from '../validators/auth.validator.js';
-import { login, signup, checkAuth } from '../controllers/auth.controller.js';
+import { login, signup, checkAuth, logout } from '../controllers/auth.controller.js';
 import passport from 'passport';
 const router = express.Router()
 
 router.post("/signup", validate(signupSchema), signup);
 router.post("/login", validate(loginSchema), login);
+router.post("/logout", logout);
 router.get(
     "/google-auth",
     passport.authenticate("google", { scope: ["profile", "email"] })

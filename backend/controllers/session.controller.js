@@ -1,4 +1,4 @@
-import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById, getMessages } from "../services/session.service.js"
+import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById, getMessages, getAllSessions } from "../services/session.service.js"
 
 import { getIO } from "../sockets/index.js"
 
@@ -120,4 +120,25 @@ export const getMessagesController = async (req, res) => {
             data: err.message
         })
     }
+}
+
+export const getAllSessionsController = async (req, res) => {
+    try {
+        const userId = req.user.id
+
+        const result = await getAllSessions(userId)
+        return res.status(201).json({
+            success: true,
+            message: "sessions fetched successfully",
+            data: result
+        }) 
+    } catch (err) {
+        console.log("message:", err.message)
+        return res.status(200).json({
+            success: false,
+            message: "sessions could not be fetched!",
+            data: err.message
+        })
+    }
+
 }
