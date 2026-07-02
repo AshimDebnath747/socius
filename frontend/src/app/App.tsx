@@ -20,8 +20,9 @@ const App = () => {
         const res = await fetch(`${API}/api/auth/me`, {
           credentials: "include",
         });
-
-        setIsAuth(res.ok);
+        const data = await res.json()
+        console.log(data)
+        setIsAuth(data.success);
       } catch (err) {
         setIsAuth(false);
       }
@@ -36,10 +37,9 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Navbar />
+      <Navbar checkAuth={isAuth} />
       <Box>
         <Routes>
-          {/* 🔥 MAIN LOGIC */}
           <Route
             path="/"
             element={isAuth ? <WelcomePage /> : <RegisterPage />}

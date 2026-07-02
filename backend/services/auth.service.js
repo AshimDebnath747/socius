@@ -60,3 +60,22 @@ export const loginUser = async ({ email, password }) => {
         }
     };
 }
+
+export const checkAuthService = async (token) => {
+    if (!token) {
+        throw new Error("Token not found!")
+    }
+
+    const decode = jwt.verify(token, process.env.JWT_SECRET)
+    const { rows } = await pool.query(
+        "SELECT * FROM users WHERE id = $1",
+        [decode.id]
+    )
+    if (rows.length == 0) {
+        throw new Error("User not found!")
+    }
+
+    return {
+        user: rows[0]
+    }
+}

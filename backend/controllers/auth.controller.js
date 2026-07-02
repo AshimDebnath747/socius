@@ -1,4 +1,4 @@
-import { signupUser, loginUser } from "../services/auth.service.js";
+import { signupUser, loginUser, checkAuthService } from "../services/auth.service.js";
 export const signup = async (req, res) => {
     try {
         const result = await signupUser(req.body);
@@ -39,6 +39,24 @@ export const login = async (req, res) => {
         return res.status(200).json({
             success: false,
             message: "user could not be logged in!",
+            data: err.message
+        })
+    }
+}
+
+export const checkAuth = async (req, res) => {
+    try {
+        const token = req.cookies.token
+        const result = await checkAuthService(token)
+        return res.status(200).json({
+            success: true,
+            message: "user Authenticated successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "user could not be authenticated in!",
             data: err.message
         })
     }

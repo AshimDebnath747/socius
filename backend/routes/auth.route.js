@@ -1,7 +1,7 @@
 import express from 'express';
 import { validate } from '../middlewares/validate.middleware.js';
 import { loginSchema, signupSchema } from '../validators/auth.validator.js';
-import { login, signup } from '../controllers/auth.controller.js';
+import { login, signup, checkAuth } from '../controllers/auth.controller.js';
 import passport from 'passport';
 const router = express.Router()
 
@@ -27,5 +27,7 @@ router.get(
         res.redirect(`http://localhost:5173/`);
     }
 );
+
+router.get("/me", checkAuth)
 
 export default router;

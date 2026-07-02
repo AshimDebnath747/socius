@@ -1,7 +1,9 @@
 import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-
-const Navbar = () => {
+type navBarAuth = {
+  checkAuth: boolean
+}
+const Navbar = ({ checkAuth }: navBarAuth) => {
   return (
     <AppBar position="sticky">
       <Toolbar>
@@ -15,18 +17,20 @@ const Navbar = () => {
         </Typography>
 
         <Box>
-<Button color="inherit" component={RouterLink} to="/feed">
-  Feed
-</Button>
-<Button color="inherit" component={RouterLink} to="/create-community">
-  Create Community
-</Button>
-<Button color="inherit" component={RouterLink} to="/login">
-  Login
-</Button>
-<Button variant="outlined" color="inherit" component={RouterLink} to="/register">
-  Sign Up
-</Button>
+          <Button color="inherit" component={RouterLink} to="/feed">
+            Feed
+          </Button>
+          <Button color="inherit" component={RouterLink} to="/create-community">
+            Create Community
+          </Button>
+          {checkAuth ? <Button color="inherit" component={RouterLink} to="/logout">
+            Logout
+          </Button> : <><Button color="inherit" component={RouterLink} to="/login">
+            Login
+          </Button>
+            <Button variant="outlined" color="inherit" component={RouterLink} to="/register">
+              Sign Up
+            </Button></>}
         </Box>
       </Toolbar>
     </AppBar>

@@ -26,7 +26,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const API = import.meta.env.VITE_BACKEND_URL;
+  const API = import.meta.env.VITE_BACKEND_URL
 
   // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
