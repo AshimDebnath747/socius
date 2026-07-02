@@ -31,6 +31,7 @@ const LoginPage = () => {
   // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
     try {
+      console.log("API", API)
       const response = await fetch(`${API}/api/auth/login`, {
         method: "POST",
         headers: {

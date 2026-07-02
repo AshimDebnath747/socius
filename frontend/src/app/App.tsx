@@ -8,7 +8,7 @@ import FeedPage from "../features/posts/pages/FeedPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import CreateCommunityPage from "../features/communities/pages/CreateCommunityPage";
-
+import ChatPage from "../features/chat/ChatPage";
 const API = import.meta.env.VITE_BACKEND_URL;
 
 const App = () => {
@@ -57,6 +57,11 @@ const App = () => {
           <Route
             path="/create-community"
             element={isAuth ? <CreateCommunityPage /> : <RegisterPage />}
+          />
+
+          <Route
+            path="/chat/:session-id"
+            element={isAuth ? <ChatPage /> : <RegisterPage />}
           />
         </Routes>
       </Box>
