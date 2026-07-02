@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useState } from "react";
 import { Box, IconButton, InputBase } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import { chatColors, chatFonts } from "../theme/chattheme";
+import { chatColors, chatFonts } from "../theme/chatTheme";
 
 interface Props {
     onSend: (text: string) => void;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
-import { chatColors, chatFonts } from "../theme/chattheme";
+import { chatColors, chatFonts } from "../theme/chatTheme";
 
 export interface ChatHeaderProps {
     otherUser: {

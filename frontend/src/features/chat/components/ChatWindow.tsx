@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import MessageBubble from "./MessageBubble";
-import { chatColors, chatFonts } from "../theme/chattheme";
+import { chatColors, chatFonts } from "../theme/chatTheme";
 import type { Message } from "../types";
 
 interface Props {

@@ -37,7 +37,8 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Navbar checkAuth={isAuth} />
+      <Navbar checkAuth={isAuth} 
+      setCheckAuth={setIsAuth}/>
       <Box>
         <Routes>
           <Route
@@ -60,7 +61,8 @@ const App = () => {
           />
 
           <Route
-            path="/chat/:session-id"
+            // path="/chat/:session-id"
+            path="/chat"
             element={isAuth ? <ChatPage /> : <RegisterPage />}
           />
         </Routes>

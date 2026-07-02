@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { chatColors, chatFonts, chatRadii } from "../theme/chattheme";
+import { chatColors, chatFonts, chatRadii } from "../theme/chatTheme";
 import type { Message } from "../types";
 
 interface Props {
