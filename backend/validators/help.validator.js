@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createHelpRequest = z.object({
     title: z.string().min(3),
     description: z.string().min(5),
-    category: z.string(),
+    categoryId: z.number().int().positive(),
     urgency: z.enum(["low", "medium", "high"]),
     preferredMode: z.enum(["text", "call"]),
     communityId: z.number().int().positive().nullish()

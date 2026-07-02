@@ -1,6 +1,6 @@
 import { pool } from "../config/db.js"
 
-export const postHelpRequest = async (title, description, category, urgency, preferredMode, communityId, userId) => {
+export const postHelpRequest = async (title, description, categoryId, urgency, preferredMode, communityId, userId) => {
     if (communityId != null) {
         const query1 = "SELECT 1 FROM communitymember WHERE community_id = $1 AND user_id = $2";
 
@@ -10,9 +10,9 @@ export const postHelpRequest = async (title, description, category, urgency, pre
             throw new Error("You are not a part of this communinty!")
         }
     }
-    const query = 'INSERT INTO helprequest (title , description , category , urgency , preferred_mode , created_by , community_id) VALUES ($1 , $2 , $3 , $4 , $5 , $6 , $7) RETURNING *';
+    const query = 'INSERT INTO helprequest (title , description , category_id , urgency , preferred_mode , created_by , community_id) VALUES ($1 , $2 , $3 , $4 , $5 , $6 , $7) RETURNING *';
 
-    const { rows } = await pool.query(query, [title, description, category, urgency, preferredMode, userId, communityId])
+    const { rows } = await pool.query(query, [title, description, categoryId, urgency, preferredMode, userId, communityId])
 
     return rows
 

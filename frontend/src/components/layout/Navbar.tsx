@@ -55,6 +55,9 @@ const Navbar = ({ checkAuth, setCheckAuth }: navBarAuth) => {
           <Button color="inherit" component={RouterLink} to="/feed">
             Feed
           </Button>
+          <Button color="inherit" component={RouterLink} to="/helprequest">
+            Create Help Request
+          </Button>
           <Button
             color="inherit"
             component={RouterLink}

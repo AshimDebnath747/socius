@@ -9,6 +9,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import CreateCommunityPage from "../features/communities/pages/CreateCommunityPage";
 import ChatPage from "../features/chat/ChatPage";
+import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 const API = import.meta.env.VITE_BACKEND_URL;
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
         console.log(data)
         setIsAuth(data.success);
       } catch (err) {
+
         setIsAuth(false);
       }
     };
@@ -37,8 +39,8 @@ const App = () => {
 
   return (
     <BrowserRouter>
-      <Navbar checkAuth={isAuth} 
-      setCheckAuth={setIsAuth}/>
+      <Navbar checkAuth={isAuth}
+        setCheckAuth={setIsAuth} />
       <Box>
         <Routes>
           <Route
@@ -64,6 +66,11 @@ const App = () => {
             // path="/chat/:session-id"
             path="/chat"
             element={isAuth ? <ChatPage /> : <RegisterPage />}
+          />
+          <Route
+            // path="/chat/:session-id"
+            path="/helprequest"
+            element={isAuth ? <HelpRequestForm /> : <RegisterPage />}
           />
         </Routes>
       </Box>

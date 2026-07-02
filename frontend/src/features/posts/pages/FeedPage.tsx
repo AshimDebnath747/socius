@@ -1,42 +1,88 @@
 import { Container, Typography } from "@mui/material";
 import PostCard from "../components/PostCard";
-
+import { useEffect, useState } from "react";
+import axios from 'axios';
 /* 🔹 Local type */
-interface Post {
-  id: string;
+// interface Post {
+//   id: string;
+//   title: string;
+//   content: string;
+//   author: string;
+//   createdAt: string;
+// }
+
+
+interface HelpRequestResponse {
+  id: number;
   title: string;
-  content: string;
-  author: string;
-  createdAt: string;
+  description: string;
+  category_id: number;
+  urgency: "low" | "medium" | "high";
+  preferred_mode: "text" | "call";
+  community_id: number | null;
+  created_by: number;
+  created_at: string;
+  status: string;
 }
-
-const mockPosts: Post[] = [
-  {
-    id: "1",
-    title: "How to handle async bugs in React?",
-    content: "I’m facing race conditions while fetching data...",
-    author: "Rohit",
-    createdAt: "2 hours ago",
-  },
-  {
-    id: "2",
-    title: "Best way to structure large React apps?",
-    content: "Feature-based or domain-based structure?",
-    author: "Admin",
-    createdAt: "1 day ago",
-  },
-];
-
+type FormData = {
+  id: number;
+  title: string;
+  description: string;
+  categoryId: number;
+  urgency: "low" | "medium" | "high";
+  preferredMode: "text" | "call";
+  communityId: number | null;
+  createdBy: number;
+  createdAt: string;
+  status: string;
+};
 const FeedPage = () => {
+
+  const [data, setData] = useState<FormData[]>([]);
+  useEffect(() => {
+    const func = async () => {
+      try {
+        const API = import.meta.env.VITE_BACKEND_URL;
+        const res = await axios.get(`${API}/api/help-requests?status=open`,
+          { withCredentials: true },
+        );
+        console.log(res)
+        const data = res.data.data.map(
+          ({
+            category_id,
+            community_id,
+            created_at,
+            created_by,
+            preferred_mode,
+            ...rest
+          }: HelpRequestResponse) => ({
+            ...rest,
+            categoryId: category_id,
+            communityId: community_id,
+            createdAt: created_at,
+            createdBy: created_by,
+            preferredMode: preferred_mode,
+          })
+        );
+
+        console.log(data)
+        setData(data)
+      } catch (err) {
+        console.log(err)
+      }
+    };
+
+    func();
+  }, []);
   return (
     <Container sx={{ py: 4, minHeight: '100vh' }}>
       <Typography variant="h4" fontWeight="bold" mb={3}>
         Community Feed
       </Typography>
+      {data.map((h => (
+        <PostCard post={h} />
+      )))}
 
-      {mockPosts.map((post) => (
-        <PostCard key={post.id} post={post} />
-      ))}
     </Container>
   );
 };

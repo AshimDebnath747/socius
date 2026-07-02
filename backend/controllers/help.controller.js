@@ -2,9 +2,9 @@ import { postHelpRequest, getHelpRequest, getHelpRequestById, closeHelpRequest }
 
 export const postHelpRequestController = async (req, res) => {
     try {
-        const { title, description, category, urgency, preferredMode, communityId } = req.body
+        const { title, description, categoryId, urgency, preferredMode, communityId } = req.body
         const userId = req.user.id
-        const result = await postHelpRequest(title, description, category, urgency, preferredMode, communityId, userId)
+        const result = await postHelpRequest(title, description, categoryId, urgency, preferredMode, communityId, userId)
         res.status(201).json({
             success: true,
             message: "Help request uploaded successfully!",

@@ -1,10 +1,17 @@
 import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
 
 interface Post {
+  id: number;
   title: string;
-  author: string;
-  createdAt: string; // or Date if you prefer
-  content: string;
+  description: string;
+  categoryId: number;
+  urgency: string;
+  preferredMode: string;
+  createdBy: number;
+  createdAt: string;
+  status: string;
+  communityId: number | null | undefined;
+
 }
 
 interface Props {
@@ -20,11 +27,11 @@ const PostCard = ({ post }: Props) => {
         </Typography>
 
         <Typography color="text.secondary" sx={{ mb: 1 }}>
-          Posted by {post.author} • {post.createdAt}
+          Posted by {post.createdBy} • {post.createdAt}
         </Typography>
 
         <Typography sx={{ mb: 2 }}>
-          {post.content}
+          {post.description}
         </Typography>
 
         <Box>
