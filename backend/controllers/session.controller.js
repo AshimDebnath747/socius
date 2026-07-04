@@ -34,7 +34,7 @@ export const getSessionByIdController = async (req, res) => {
         const { id } = req.params
 
         const result = await getSessionById(id)
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "session fetched successfully",
             data: result
@@ -81,7 +81,7 @@ export const cancelSessionByIdController = async (req, res) => {
         const { id } = req.params
 
         const result = await cancelSessionById(id)
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "session fetched successfully",
             data: result
@@ -104,7 +104,7 @@ export const getMessagesController = async (req, res) => {
         const userId = req.user.id
 
         const result = await getMessages(id, userId)
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "session fetched successfully",
             data: result
@@ -124,10 +124,11 @@ export const getMessagesController = async (req, res) => {
 
 export const getAllSessionsController = async (req, res) => {
     try {
+        console.log("req.user:", req.user)
         const userId = req.user.id
 
         const result = await getAllSessions(userId)
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "sessions fetched successfully",
             data: result

@@ -10,8 +10,13 @@ import {
 
 type Session = {
   id: number;
-  name: string;
-  lastMessage: string;
+  help_request_id: number;
+  requester_id: number;
+  helper_id: number;
+  mode: "call" | "text" | null;
+  start_time: string | null;
+  end_time: string | null;
+  status: "active" | "completed" | "cancelled";
 };
 
 type SessionSidebarProps = {
@@ -49,12 +54,12 @@ const SessionSidebar = ({
             onClick={() => onSelectSession(session)}
           >
             <ListItemAvatar>
-              <Avatar>{session.name.charAt(0)}</Avatar>
+              {/* <Avatar>{session.name.charAt(0)}</Avatar> */}
             </ListItemAvatar>
 
             <ListItemText
-              primary={session.name}
-              secondary={session.lastMessage}
+              // primary={session.name}
+              // secondary={session.lastMessage}
             />
           </ListItemButton>
         ))}

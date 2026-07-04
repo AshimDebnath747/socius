@@ -3,7 +3,7 @@ export const signup = async (req, res) => {
     try {
         const result = await signupUser(req.body);
 
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "user signed up successfully!",
             data: result
@@ -26,7 +26,7 @@ export const login = async (req, res) => {
             secure: true,   // only over HTTPS
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
-        return res.status(201).json({
+        return res.status(200).json({
             success: true,
             message: "user signed up successfully!",
             user: {
@@ -47,8 +47,8 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: true,       // use false if you're developing over HTTP
-        sameSite: "none"    // match your login cookie settings
+        secure: true,       
+        sameSite: "none"    
     });
 
     return res.status(200).json({

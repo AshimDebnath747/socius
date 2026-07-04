@@ -134,11 +134,15 @@ export const getMessages = async (id, userId) => {
 }
 
 export const getAllSessions = async (userId) => {
-    const { rows } = await pool.query("SELECT * FROM session")
+    const query = `
+        SELECT *
+        FROM session
+        WHERE requester_id = $1
+           OR helper_id = $1
+        ORDER BY start_time DESC;
+    `;
 
-    if (!rows[0]) {
-        throw new Error("There are no sessions!")
-    }
+    const { rows } = await pool.query(query, [userId]);
 
-    return rows
-}
+    return rows;
+};
