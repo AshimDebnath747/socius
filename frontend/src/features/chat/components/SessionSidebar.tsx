@@ -7,6 +7,8 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
+import { useEffect, useState } from "react";
+import { getSessions } from "../../../services/session.service";
 
 type Session = {
   id: number;
@@ -20,14 +22,38 @@ type Session = {
 };
 
 type SessionSidebarProps = {
-  sessions: Session[];
+
   onSelectSession: (session: Session) => void;
 };
 
 const SessionSidebar = ({
-  sessions,
   onSelectSession,
 }: SessionSidebarProps) => {
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+
+
+
+useEffect(() => {
+    const fetchSessions = async () => {
+        try {
+            const data = await getSessions();
+            setSessions(data);
+            
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    fetchSessions();
+}, []);
+
+
+
+
+
+
+
   return (
     <Box
       sx={{
@@ -58,8 +84,8 @@ const SessionSidebar = ({
             </ListItemAvatar>
 
             <ListItemText
-              // primary={session.name}
-              // secondary={session.lastMessage}
+            primary={session.id}
+            // secondary={session.lastMessage}
             />
           </ListItemButton>
         ))}

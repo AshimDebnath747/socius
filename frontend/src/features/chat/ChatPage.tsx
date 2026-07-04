@@ -4,7 +4,8 @@ import MessageInput from "./components/MessageInput";
 import { Box, Typography } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useState } from "react";
-import { getSessions } from "../../services/session.service";
+import type { Session } from "../../types/session";
+import { getNxtUserbyId } from "../../services/user.service";
 
 
 const CURRENT_USER_ID = "u_you";
@@ -26,15 +27,30 @@ const INITIAL_MESSAGES = [
 
 const ChatPage = () => {
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+ const [charUser, setCharUser] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
 const connected = true;
 
 const loading = false;
 
 
+// Function to handle session selection
 
+useEffect(() => {
+    const fetchSessions = async () => {
+        try {
+          if (!selectedSession) return;
+            const res = await getNxtUserbyId(selectedSession.id);
+            setCharUser(res.data.data);
+            
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    fetchSessions();
+}, [selectedSession]);
 
 
   return (
@@ -45,7 +61,7 @@ const loading = false;
       }}
     >
       <SessionSidebar 
-      sessions={sessions}
+      
       onSelectSession={setSelectedSession}
       
       />
@@ -69,7 +85,7 @@ const loading = false;
 >
   <ChatHeader
     otherUser={{
-      name: selectedSession.name,
+      name: charUser.name || "User",
       role: "helper",
     }}
     requestTitle="Electricity Bill"
