@@ -1,4 +1,4 @@
-import { getUserById, putUser, getReviewsById } from "../services/user.service.js";
+import { getUserById, putUser, getReviewsById, getNextUserById } from "../services/user.service.js";
 export const getUserByIdController = async (req, res) => {
     const { id } = req.params
     try {
@@ -59,5 +59,36 @@ export const getReviewsByIdController = async (req, res) => {
             message: "user could not be updated!",
             data: err.message
         })
+    }
+}
+
+// Get user by id for next user to chat.
+
+export const getNextUserByIdController = async (req, res) => {
+    const { helper_id, requester_id } = req.body;
+    const currentUserId = req.user?.id;
+
+    if (helper_id == null || requester_id == null) {
+        return res.status(400).json({
+            success: false,
+            message: "helper_id and requester_id are required",
+        });
+    }
+
+    try {
+        const result = await getNextUserById(helper_id, requester_id, currentUserId);
+
+        return res.status(200).json({
+            success: true,
+            message: "user fetched successfully",
+            data: result
+        });
+    } catch (err) {
+        console.log("message:", err.message);
+        return res.status(400).json({
+            success: false,
+            message: "user could not be fetched!",
+            data: err.message
+        });
     }
 }

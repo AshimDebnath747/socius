@@ -5,7 +5,7 @@ import { Box, Typography } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useState } from "react";
 import type { Session } from "../../types/session";
-import { getNxtUserbyId } from "../../services/user.service";
+import { getNextUserById } from "../../services/user.service";
 
 
 const CURRENT_USER_ID = "u_you";
@@ -27,7 +27,7 @@ const INITIAL_MESSAGES = [
 
 const ChatPage = () => {
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
- const [charUser, setCharUser] = useState<any>(null);
+ const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
 const connected = true;
@@ -41,8 +41,9 @@ useEffect(() => {
     const fetchSessions = async () => {
         try {
           if (!selectedSession) return;
-            const res = await getNxtUserbyId(selectedSession.id);
-            setCharUser(res.data.data);
+            const res = await getNextUserById(selectedSession.helper_id, selectedSession.requester_id);
+            setChatUser(res);
+            console.log("Fetched user:", res);
             
         } catch (err) {
             console.error(err);
@@ -85,7 +86,7 @@ useEffect(() => {
 >
   <ChatHeader
     otherUser={{
-      name: charUser.name || "User",
+      name: chatUser?.name || "Loading...",
       role: "helper",
     }}
     requestTitle="Electricity Bill"
