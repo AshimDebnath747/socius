@@ -37,8 +37,7 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
+        origin: "http://localhost:5173",
         credentials: true
     },
     pingTimeout: 60000,   // 60 seconds to wait for pong

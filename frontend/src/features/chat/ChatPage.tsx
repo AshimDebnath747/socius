@@ -11,119 +11,120 @@ import { getNxtUserbyId } from "../../services/user.service";
 const CURRENT_USER_ID = "u_you";
 
 const OTHER_USER = {
-  name: "Priya Sharma",
-  role: "helper" as const,
+    name: "Priya Sharma",
+    role: "helper" as const,
 };
 
 const INITIAL_MESSAGES = [
-  {
-    id: "1",
-    sessionId: "s1",
-    senderId: OTHER_USER.name,
-    content: "Hey, I saw your request — happy to help!",
-    createdAt: new Date().toISOString(),
-  },
+    {
+        id: "1",
+        sessionId: "s1",
+        senderId: OTHER_USER.name,
+        content: "Hey, I saw your request — happy to help!",
+        createdAt: new Date().toISOString(),
+    },
 ];
 
 const ChatPage = () => {
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
- const [charUser, setCharUser] = useState<any>(null);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [messages, setMessages] = useState(INITIAL_MESSAGES);
+    const [charUser, setCharUser] = useState<any>(null);
+    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
-const connected = true;
+    const connected = true;
 
-const loading = false;
-
-
-// Function to handle session selection
-
-useEffect(() => {
-    const fetchSessions = async () => {
-        try {
-          if (!selectedSession) return;
-            const res = await getNxtUserbyId(selectedSession.id);
-            setCharUser(res.data.data);
-            
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    fetchSessions();
-}, [selectedSession]);
+    const loading = false;
 
 
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        height: "calc(100vh - 64px)",
-      }}
-    >
-      <SessionSidebar 
-      
-      onSelectSession={setSelectedSession}
-      
-      />
+    // Function to handle session selection
 
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {selectedSession ? (
-          <Box
-  sx={{
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-  }}
->
-  <ChatHeader
-    otherUser={{
-      name: charUser.name || "User",
-      role: "helper",
-    }}
-    requestTitle="Electricity Bill"
-    amount={1500}
-    sessionStartedAt={new Date().toISOString()}
-    connected={connected}
-  />
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                if (!selectedSession) return;
 
-  <ChatWindow
-    messages={messages}
-    loading={loading}
-    currentUserId={CURRENT_USER_ID}
-  />
+                const res = await getNxtUserbyId(selectedSession.id);
+                setCharUser(res.data.data);
 
-  <MessageInput
-    onSend={(content) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          sessionId: "s1",
-          senderId: CURRENT_USER_ID,
-          content,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    }}
-    disabled={!connected}
-  />
-</Box>
-        ) : (
-          <Typography variant="h5">
-            Select a conversation
-          </Typography>
-        )}
-      </Box>
-    </Box>
-  );
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchSessions();
+    }, [selectedSession]);
+
+
+    return (
+        <Box
+            sx={{
+                display: "flex",
+                height: "calc(100vh - 64px)",
+            }}
+        >
+            <SessionSidebar
+
+                onSelectSession={setSelectedSession}
+
+            />
+
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                {selectedSession ? (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            width: "100%",
+                            height: "100%",
+                        }}
+                    >
+                        <ChatHeader
+                            otherUser={{
+                                name: charUser.name || "User",
+                                role: "helper",
+                            }}
+                            requestTitle="Electricity Bill"
+                            amount={1500}
+                            sessionStartedAt={new Date().toISOString()}
+                            connected={connected}
+                        />
+
+                        <ChatWindow
+                            messages={messages}
+                            loading={loading}
+                            currentUserId={CURRENT_USER_ID}
+                        />
+
+                        <MessageInput
+                            onSend={(content) => {
+                                setMessages((prev) => [
+                                    ...prev,
+                                    {
+                                        id: crypto.randomUUID(),
+                                        sessionId: "s1",
+                                        senderId: CURRENT_USER_ID,
+                                        content,
+                                        createdAt: new Date().toISOString(),
+                                    },
+                                ]);
+                            }}
+                            disabled={!connected}
+                        />
+                    </Box>
+                ) : (
+                    <Typography variant="h5">
+                        Select a conversation
+                    </Typography>
+                )}
+            </Box>
+        </Box>
+    );
 };
 
 export default ChatPage;

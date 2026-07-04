@@ -9,7 +9,7 @@ export const registerMessageEvents = (io, socket) => {
     socket.on("send-message", async ({ sessionId, content }) => {
         try {
             // Save to DB
-            console.log("sessionId:", sessionId);  // ← check this
+            console.log("sessionId:", sessionId); c  // ← check this
             console.log("content:", content);
             const { rows: sessionRows } = await pool.query(
                 `SELECT * FROM session 
