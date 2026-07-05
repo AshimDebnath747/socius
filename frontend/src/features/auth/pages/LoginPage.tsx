@@ -45,13 +45,13 @@ const LoginPage = () => {
       });
 
       const result = await response.json();
-      console.log(result.user)
+      //console.log(result.user)
       localStorage.setItem("user", JSON.stringify(result.user));
       if (!response.ok) {
         throw new Error(result.message || "Login failed");
       }
 
-      console.log("Login success:", result);
+      //console.log("Login success:", result);
 
       // 🔥 IMPORTANT CHANGE HERE
       window.location.href = "/"; // force reload so auth check works

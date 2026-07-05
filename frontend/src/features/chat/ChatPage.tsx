@@ -32,7 +32,7 @@ const ChatPage = () => {
     useEffect(() => {
 
         const handleReceiveMessage = (msg: any) => {
-            console.log(msg)
+            //console.log(msg)
             const message: Message = {
                 id: String(msg.id),
                 sessionId: String(msg.session_id),

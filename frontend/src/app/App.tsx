@@ -19,7 +19,7 @@ const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
   useEffect(() => {
     socket.on('connect', () => {
-      console.log("Fronend connected")
+      //console.log("Fronend connected")
     })
 
     return () => socket.off("connect")
@@ -31,7 +31,7 @@ const App = () => {
           credentials: "include",
         });
         const data = await res.json()
-        console.log(data)
+        //console.log(data)
         setIsAuth(data.success);
       } catch (err) {
 
