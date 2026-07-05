@@ -87,7 +87,7 @@ useEffect(() => {
   <ChatHeader
     otherUser={{
       name: chatUser?.name || "Loading...",
-      role: "helper",
+      role: chatUser?.role || "Loading...",
     }}
     requestTitle="Electricity Bill"
     amount={1500}
