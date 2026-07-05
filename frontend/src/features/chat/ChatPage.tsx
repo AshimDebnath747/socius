@@ -32,7 +32,7 @@ const ChatPage = () => {
     useEffect(() => {
 
         const handleReceiveMessage = (msg: any) => {
-            console.log(msg)
+            //console.log(msg)
             const message: Message = {
                 id: String(msg.id),
                 sessionId: String(msg.session_id),
@@ -96,33 +96,31 @@ const ChatPage = () => {
 
             />
 
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {selectedSession ? (
-          <Box
-  sx={{
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    height: "100%",
-  }}
->
-  <ChatHeader
-    otherUser={{
-      name: chatUser?.name || "Loading...",
-      role: "helper",
-    }}
-    requestTitle="Electricity Bill"
-    amount={1500}
-    sessionStartedAt={new Date().toISOString()}
-    connected={connected}
-  />
+            <Box
+                sx={{
+                    flex: 1,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                {selectedSession ? (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            width: "100%",
+                            height: "100%",
+                        }}
+                    >
+                        <ChatHeader
+                            otherUser={{
+                                name: chatUser?.name || "Loading...",
+                                role: chatUser?.role || "Loading...",
+                            }}
+                            
+                            
+                        />
 
                         <ChatWindow
                             messages={messages}
