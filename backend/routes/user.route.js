@@ -2,7 +2,7 @@ import express from 'express';
 import { authMiddleware } from "../middlewares/auth.middleware.js"
 import { validate, validateQuery } from '../middlewares/validate.middleware.js';
 import { updateUserSchema, getReviewsValidation } from '../validators/user.validator.js';
-import { getUserByIdController, putUserController, getReviewsByIdController } from "../controllers/user.controller.js"
+import { getUserByIdController, putUserController, getReviewsByIdController, getNextUserByIdController } from "../controllers/user.controller.js"
 const router = express.Router()
 
 
@@ -10,6 +10,7 @@ router.use(authMiddleware)
 
 //get requests
 router.get("/:id", getUserByIdController)
+router.post("/next", getNextUserByIdController)
 router.get("/:id/reviews", validateQuery(getReviewsValidation), getReviewsByIdController)
 
 //put requests

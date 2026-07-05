@@ -3,13 +3,14 @@ import { pool } from "../config/db.js";
 export const registerMessageEvents = (io, socket) => {
 
     socket.on("join-session", (sessionId) => {
+        console.log(`session-${sessionId}`)
         socket.join(`session-${sessionId}`);
     });
 
     socket.on("send-message", async ({ sessionId, content }) => {
         try {
             // Save to DB
-            console.log("sessionId:", sessionId); c  // ← check this
+            console.log("sessionId:", sessionId);  // ← check this
             console.log("content:", content);
             const { rows: sessionRows } = await pool.query(
                 `SELECT * FROM session 
@@ -31,7 +32,7 @@ export const registerMessageEvents = (io, socket) => {
             );
 
             const message = rows[0];
-
+            console.log(message)
             // Emit to both users in that session room
             io.to(`session-${sessionId}`).emit("receive-message", message);
 

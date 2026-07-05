@@ -124,7 +124,6 @@ export const getMessagesController = async (req, res) => {
 
 export const getAllSessionsController = async (req, res) => {
     try {
-        console.log("req.user:", req.user)
         const userId = req.user.id
 
         const result = await getAllSessions(userId)

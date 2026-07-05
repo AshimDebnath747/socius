@@ -61,3 +61,31 @@ export const getReviewsById = async (userId, page, limit) => {
     reviews
   }
 }
+
+//  get the next user by ID to chat with
+
+export const getNextUserById = async (helper_id, requester_id, currentUserId) => {
+  const query = `
+    SELECT id, name, email, role, rating
+    FROM users
+    WHERE id = $1
+  `;
+
+  if (helper_id == null || requester_id == null || currentUserId == null) {
+    throw new Error("helper_id, requester_id, and current user id are required");
+  }
+
+
+  let targetId;
+
+  if (currentUserId === helper_id) {
+    targetId = requester_id;
+  } else if (currentUserId === requester_id) {
+    targetId = helper_id;
+  } else {
+    throw new Error("Authenticated user is not a participant in this chat");
+  }
+
+  const { rows } = await pool.query(query, [targetId]);
+  return rows[0];
+}
