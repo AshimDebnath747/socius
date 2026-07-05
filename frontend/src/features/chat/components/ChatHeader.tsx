@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
 import { chatColors, chatFonts } from "../theme/chatTheme";
 
@@ -7,39 +6,17 @@ export interface ChatHeaderProps {
         name: string;
         avatarUrl?: string;
         role: "requester" | "helper";
+        connected?: boolean;
     };
-    requestTitle: string;
-    amount: number;
-    sessionStartedAt: string; // ISO timestamp
-    connected: boolean;
+    
 }
 
-function formatDuration(ms: number) {
-    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}
 
 export default function ChatHeader({
     otherUser,
-    requestTitle,
-    amount,
-    sessionStartedAt,
-    connected,
 }: ChatHeaderProps) {
-    const [elapsed, setElapsed] = useState(0);
 
-    useEffect(() => {
-        const start = new Date(sessionStartedAt).getTime();
-        const tick = () => setElapsed(Date.now() - start);
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [sessionStartedAt]);
-
+    
     return (
         <Box
             sx={{
@@ -66,9 +43,9 @@ export default function ChatHeader({
                             width: 10,
                             height: 10,
                             borderRadius: "50%",
-                            bgcolor: connected ? chatColors.primary : chatColors.inkSoft,
+                            bgcolor: otherUser.connected ? chatColors.primary : chatColors.inkSoft,
                             border: `2px solid ${chatColors.surface}`,
-                            "@media (prefers-reduced-motion: no-preference)": connected
+                            "@media (prefers-reduced-motion: no-preference)": otherUser.connected
                                 ? {
                                     animation: "chat-pulse 2s ease-in-out infinite",
                                 }
@@ -117,7 +94,7 @@ export default function ChatHeader({
                 </Box>
             </Stack>
 
-            {/* Session strip — the signature element: keeps the money context visible */}
+            {/* Session strip — the signature element: keeps the money context visible
             <Stack
                 direction="row"
                 alignItems="center"
@@ -139,7 +116,7 @@ export default function ChatHeader({
                         minWidth: 0,
                     }}
                 >
-                    {requestTitle}
+                    
                 </Typography>
                 <Stack direction="row" spacing={1.5} alignItems="baseline" flexShrink={0}>
                     <Typography
@@ -150,7 +127,7 @@ export default function ChatHeader({
                             color: chatColors.accent,
                         }}
                     >
-                        ₹{amount.toLocaleString("en-IN")}
+                        
                     </Typography>
                     <Typography
                         sx={{
@@ -159,10 +136,10 @@ export default function ChatHeader({
                             color: chatColors.inkSoft,
                         }}
                     >
-                        {formatDuration(elapsed)}
+                        
                     </Typography>
-                </Stack>
-            </Stack>
+                </Stack> */}
+            {/* </Stack> */}
         </Box>
     );
 }

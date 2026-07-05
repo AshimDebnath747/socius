@@ -77,15 +77,21 @@ export const getNextUserById = async (helper_id, requester_id, currentUserId) =>
 
 
   let targetId;
+  let role
 
   if (currentUserId === helper_id) {
     targetId = requester_id;
+    role = "requester"
   } else if (currentUserId === requester_id) {
     targetId = helper_id;
+    role = "helper"
   } else {
     throw new Error("Authenticated user is not a participant in this chat");
   }
 
   const { rows } = await pool.query(query, [targetId]);
+  rows[0].role = role
+  console.log("next user:", rows[0] )
+  
   return rows[0];
 }

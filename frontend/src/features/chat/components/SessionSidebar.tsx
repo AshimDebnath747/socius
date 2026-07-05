@@ -9,17 +9,9 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { getSessions } from "../../../services/session.service";
+import type { Session } from "../../../types/session";
 
-type Session = {
-  id: number;
-  help_request_id: number;
-  requester_id: number;
-  helper_id: number;
-  mode: "call" | "text" | null;
-  start_time: string | null;
-  end_time: string | null;
-  status: "active" | "completed" | "cancelled";
-};
+
 
 type SessionSidebarProps = {
 
@@ -80,12 +72,12 @@ useEffect(() => {
             onClick={() => onSelectSession(session)}
           >
             <ListItemAvatar>
-              {/* <Avatar>{session.name.charAt(0)}</Avatar> */}
+              <Avatar>{session.urgency.charAt(0)}</Avatar>
             </ListItemAvatar>
 
             <ListItemText
-            primary={session.id}
-            // secondary={session.lastMessage}
+            primary={session.title}
+            secondary={session.urgency}
             />
           </ListItemButton>
         ))}

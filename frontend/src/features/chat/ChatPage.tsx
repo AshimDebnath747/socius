@@ -116,12 +116,10 @@ const ChatPage = () => {
                         <ChatHeader
                             otherUser={{
                                 name: chatUser?.name || "Loading...",
-                                role: "helper",
+                                role: chatUser?.role || "Loading...",
                             }}
-                            requestTitle="Electricity Bill"
-                            amount={1500}
-                            sessionStartedAt={new Date().toISOString()}
-                            connected={connected}
+                            
+                            
                         />
 
                         <ChatWindow
