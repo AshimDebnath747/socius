@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
+import { io } from 'socket.io-client';
 import Navbar from "../components/layout/Navbar";
 import WelcomePage from "../features/home/WelcomePage";
 import FeedPage from "../features/posts/pages/FeedPage";
@@ -11,10 +12,18 @@ import CreateCommunityPage from "../features/communities/pages/CreateCommunityPa
 import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 const API = import.meta.env.VITE_BACKEND_URL;
-
+const socket = io(API, {
+  withCredentials: true,
+});
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log("Fronend connected")
+    })
 
+    return () => socket.off("connect")
+  }, [])
   useEffect(() => {
     const checkAuth = async () => {
       try {
