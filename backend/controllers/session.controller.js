@@ -10,11 +10,16 @@ export const helpRequestAcceptController = async (req, res) => {
 
         const session = await helpRequestAccept(helpRequestId, helperId, mode)
         const io = getIO();
+        const RequesterId = session.requester_id
         io.to(`user-${session.requester_id}`).emit("join-session", session.id);
         io.to(`user-${session.helper_id}`).emit("join-session", session.id);
+        io.to(`user-${RequesterId}`).emit("new-chat", {
+            sessionId: session.id,
+            helperId: req.user.id,
+        });
         return res.status(201).json({
             success: true,
-            message: "session posted successfully",
+            message: "session created successfully",
             data: session
         })
 
@@ -23,7 +28,7 @@ export const helpRequestAcceptController = async (req, res) => {
         console.log("message:", err.message)
         return res.status(200).json({
             success: false,
-            message: "session could not be posted!",
+            message: "session could not be created!",
             data: err.message
         })
     }
@@ -131,7 +136,7 @@ export const getAllSessionsController = async (req, res) => {
             success: true,
             message: "sessions fetched successfully",
             data: result
-        }) 
+        })
     } catch (err) {
         console.log("message:", err.message)
         return res.status(200).json({

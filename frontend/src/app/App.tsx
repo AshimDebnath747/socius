@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
-
+import { Snackbar, Alert, Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import { io } from 'socket.io-client';
 import Navbar from "../components/layout/Navbar";
 import WelcomePage from "../features/home/WelcomePage";
@@ -11,16 +12,45 @@ import RegisterPage from "../features/auth/pages/RegisterPage";
 import CreateCommunityPage from "../features/communities/pages/CreateCommunityPage";
 import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
+import PostPage from "../features/posts/components/HelpRequestPage";
+
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
 });
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const navigate = useNavigate();
+
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    sessionId: number | null;
+  }>({
+    open: false,
+    sessionId: null,
+  });
   useEffect(() => {
-    socket.on('connect', () => {
-      //console.log("Fronend connected")
-    })
+    const handleNewChat = (data: { sessionId: number }) => {
+      setNotification({
+        open: true,
+        sessionId: data.sessionId,
+      });
+    };
+
+    socket.on("new-chat", handleNewChat);
+
+    return () => {
+      socket.off("new-chat", handleNewChat);
+    };
+  }, []);
+  useEffect(() => {
+    try {
+      socket.on('connect', () => {
+        //console.log("Fronend connected")
+      })
+    } catch (err) {
+      console.log("server is down!", err)
+    }
 
     return () => socket.off("connect")
   }, [])
@@ -47,7 +77,45 @@ const App = () => {
   }
 
   return (
-    <BrowserRouter>
+    <>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={10000}
+        onClose={() =>
+          setNotification((prev) => ({
+            ...prev,
+            open: false,
+          }))
+        }
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          severity="success"
+          sx={{
+            width: 500,
+            fontSize: "1rem",
+            py: 1.5,
+            px: 2,
+            "& .MuiAlert-message": {
+              fontSize: "1rem",
+            },
+          }}
+          action={
+            <Button
+              color="inherit"
+              onClick={() => {
+                if (notification.sessionId) {
+                  navigate(`/chat`);
+                }
+              }}
+            >
+              OPEN
+            </Button>
+          }
+        >
+          Your help request has been accepted!
+        </Alert>
+      </Snackbar>
       <Navbar checkAuth={isAuth}
         setCheckAuth={setIsAuth} />
       <Box>
@@ -81,9 +149,14 @@ const App = () => {
             path="/helprequest"
             element={isAuth ? <HelpRequestForm /> : <RegisterPage />}
           />
+          <Route
+            // path="/chat/:session-id"
+            path="/help-request/:id"
+            element={isAuth ? <PostPage /> : <RegisterPage />}
+          />
         </Routes>
       </Box>
-    </BrowserRouter>
+    </>
   );
 };
 

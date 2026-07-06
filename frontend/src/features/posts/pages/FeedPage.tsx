@@ -2,6 +2,9 @@ import { Container, Typography } from "@mui/material";
 import PostCard from "../components/PostCard";
 import { useEffect, useState } from "react";
 import axios from 'axios';
+import type { Post, HelpRequestResponse } from "../types";
+import { useNavigate } from "react-router-dom";
+import api from "../../../lib/axios";
 /* 🔹 Local type */
 // interface Post {
 //   id: string;
@@ -11,41 +14,14 @@ import axios from 'axios';
 //   createdAt: string;
 // }
 
-
-interface HelpRequestResponse {
-  id: number;
-  title: string;
-  description: string;
-  category_id: number;
-  urgency: "low" | "medium" | "high";
-  preferred_mode: "text" | "call";
-  community_id: number | null;
-  created_by: number;
-  created_at: string;
-  status: string;
-}
-type FormData = {
-  id: number;
-  title: string;
-  description: string;
-  categoryId: number;
-  urgency: "low" | "medium" | "high";
-  preferredMode: "text" | "call";
-  communityId: number | null;
-  createdBy: number;
-  createdAt: string;
-  status: string;
-};
 const FeedPage = () => {
-
-  const [data, setData] = useState<FormData[]>([]);
+  const navigate = useNavigate()
+  const [data, setData] = useState<Post[]>([]);
   useEffect(() => {
     const func = async () => {
       try {
         const API = import.meta.env.VITE_BACKEND_URL;
-        const res = await axios.get(`${API}/api/help-requests?status=open`,
-          { withCredentials: true },
-        );
+        const res = await api.get(`${API}/api/help-requests?status=open`);
         console.log(res)
         const data = res.data.data.map(
           ({
@@ -53,6 +29,7 @@ const FeedPage = () => {
             community_id,
             created_at,
             created_by,
+            name,
             preferred_mode,
             ...rest
           }: HelpRequestResponse) => ({
@@ -61,6 +38,7 @@ const FeedPage = () => {
             communityId: community_id,
             createdAt: created_at,
             createdBy: created_by,
+            name: name,
             preferredMode: preferred_mode,
           })
         );
@@ -77,10 +55,10 @@ const FeedPage = () => {
   return (
     <Container sx={{ py: 4, minHeight: '100vh' }}>
       <Typography variant="h4" fontWeight="bold" mb={3}>
-        Community Feed
+        global help request Feed!
       </Typography>
       {data.map((h => (
-        <PostCard post={h} />
+        <PostCard key={h.id} post={h} onClick={() => navigate(`/help-request/${h.id}`)} />
       )))}
 
     </Container>

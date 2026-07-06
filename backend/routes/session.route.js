@@ -8,11 +8,11 @@ const router = express.Router()
 
 router.use(authMiddleware)
 
-//post request
+//post request -> help request accept
 router.post("/request", validate(helpRequestAcceptValidation), helpRequestAcceptController)
 
 //get request
-router.get("/",getAllSessionsController)
+router.get("/", getAllSessionsController)
 router.get("/:id", getSessionByIdController)
 router.get("/:id/messages", getMessagesController)
 

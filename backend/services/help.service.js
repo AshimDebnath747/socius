@@ -21,17 +21,36 @@ export const postHelpRequest = async (title, description, categoryId, urgency, p
 export const getHelpRequest = async (communityId, status) => {
 
     if (!communityId) {
-        const query = 'SELECT * FROM helprequest WHERE community_id IS NULL and status = $1 ORDER BY created_at DESC';
+        const query = `
+        SELECT
+            h.*,
+            u.name
+        FROM helprequest h
+        JOIN users u
+            ON h.created_by = u.id
+        WHERE h.community_id IS NULL
+          AND h.req_status = $1
+        ORDER BY h.created_at DESC
+    `;
 
-        const { rows } = await pool.query(query, [status])
-        return rows
+        const { rows } = await pool.query(query, [status]);
+        return rows;
 
     } else {
-        const query = 'SELECT * FROM helprequest WHERE community_id = $1 and status = $2 ORDER BY created_at DESC';
+        const query = `
+        SELECT
+            h.*,
+            u.name
+        FROM helprequest h
+        JOIN users u
+            ON h.created_by = u.id
+        WHERE h.community_id = $1
+          AND h.req_status = $2
+        ORDER BY h.created_at DESC
+    `;
 
-        const { rows } = await pool.query(query, [communityId, status])
-
-        return rows
+        const { rows } = await pool.query(query, [communityId, status]);
+        return rows;
     }
 
 }
@@ -40,15 +59,23 @@ export const getHelpRequestById = async (id) => {
 
     //I think this function needs improvements but I don't have anything in mind rn .. will think in future
 
-    const query = 'SELECT * FROM helprequest WHERE id = $1';
+    const query = `
+    SELECT
+        h.*,
+        u.name
+    FROM helprequest h
+    JOIN users u
+        ON h.created_by = u.id
+    WHERE h.id = $1
+`;
 
-    const { rows } = await pool.query(query, [id])
+    const { rows } = await pool.query(query, [id]);
 
     if (!rows[0]) {
-        throw new Error("There might be some problem in server!")
+        throw new Error("There might be some problem in server!");
     }
 
-    return rows[0]
+    return rows[0];
 
 }
 

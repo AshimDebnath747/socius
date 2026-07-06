@@ -1,33 +1,21 @@
 import { Card, CardContent, Typography, Box, Chip } from "@mui/material";
-
-interface Post {
-  id: number;
-  title: string;
-  description: string;
-  categoryId: number;
-  urgency: string;
-  preferredMode: string;
-  createdBy: number;
-  createdAt: string;
-  status: string;
-  communityId: number | null | undefined;
-
-}
+import { type Post } from "../types";
 
 interface Props {
   post: Post;
+  onClick?: () => void
 }
 
-const PostCard = ({ post }: Props) => {
+const PostCard = ({ post, onClick }: Props) => {
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card sx={{ mb: 2 }} onClick={onClick}>
       <CardContent>
         <Typography variant="h6" fontWeight="bold">
           {post.title}
         </Typography>
 
         <Typography color="text.secondary" sx={{ mb: 1 }}>
-          Posted by {post.createdBy} • {post.createdAt}
+          Posted by {post.name} • {post.createdAt}
         </Typography>
 
         <Typography sx={{ mb: 2 }}>
