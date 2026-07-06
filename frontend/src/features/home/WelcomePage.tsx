@@ -37,7 +37,7 @@ const WelcomePage = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          minHeight: "90vh",
+          minHeight: "calc(100vh - 64px)",
           display: "flex",
           alignItems: "center",
           background: "linear-gradient(135deg, #1976d2, #42a5f5)",

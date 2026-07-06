@@ -26,8 +26,10 @@ export const createCommunityController = async (req, res) => {
 
 export const getCommunitiesController = async (req, res) => {
     try {
-        const result = await getCommunities()
-        res.status(201).json({
+        const userId = req.user.id
+        
+        const result = await getCommunities(userId)
+        res.status(200).json({
             success: true,
             message: "communities fetched successfully",
             data: result

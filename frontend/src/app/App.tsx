@@ -9,10 +9,10 @@ import WelcomePage from "../features/home/WelcomePage";
 import FeedPage from "../features/posts/pages/FeedPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
-import CreateCommunityPage from "../features/communities/pages/CreateCommunityPage";
 import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 import PostPage from "../features/posts/components/HelpRequestPage";
+import CommunityPage from "../features/communities/communityPage";
 
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
@@ -136,7 +136,7 @@ const App = () => {
 
           <Route
             path="/create-community"
-            element={isAuth ? <CreateCommunityPage /> : <RegisterPage />}
+            element={isAuth ? <CommunityPage /> : <RegisterPage />}
           />
 
           <Route

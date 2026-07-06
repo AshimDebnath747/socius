@@ -32,9 +32,14 @@ export const createCommunity = async (name, description, rules, is_private, user
 
 }
 
-export const getCommunities = async () => {
-    const query = 'SELECT * FROM community'
-    const { rows } = await pool.query(query)
+export const getCommunities = async (userId) => {
+    const query = `
+    SELECT c.*
+FROM community c
+INNER JOIN communitymember cm
+ON c.id = cm.community_id
+WHERE cm.user_id = $1;`
+    const { rows } = await pool.query(query,[userId])
     return rows
 }
 

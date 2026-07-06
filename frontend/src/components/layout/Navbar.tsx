@@ -40,8 +40,8 @@ const Navbar = ({ checkAuth, setCheckAuth }: navBarAuth) => {
   };
 
   return (
-    <AppBar position="sticky">
-      <Toolbar>
+    <AppBar position="sticky" sx={{ m: 0, width: "100%" }}>
+      <Toolbar sx={{ px: 0 }}>
         <Typography
           variant="h6"
           component={RouterLink}
@@ -71,7 +71,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: navBarAuth) => {
             component={RouterLink}
             to="/create-community"
           >
-            Create Community
+            Community
           </Button>
 
           {checkAuth ? (

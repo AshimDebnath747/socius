@@ -48,41 +48,48 @@ useEffect(() => {
 
   return (
     <Box
-      sx={{
-        width: 320,
-        height: "100%",
-        borderRight: "1px solid #ddd",
-      }}
-    >
-      <Typography
-        variant="h5"
-        sx={{
-          p: 2,
-          borderBottom: "1px solid #ddd",
-          fontWeight: "bold",
-        }}
+  sx={{
+    width: 320,
+    height: "100%", // use 100% so it respects the parent container height
+    borderRight: "1px solid #ddd",
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
+  <Typography
+    variant="h5"
+    sx={{
+      p: 2,
+      borderBottom: "1px solid #ddd",
+      fontWeight: "bold",
+    }}
+  >
+    Chats
+  </Typography>
+
+  <List
+    sx={{
+      flex: 1,
+      overflowY: "auto",
+    }}
+  >
+    {sessions.map((session) => (
+      <ListItemButton
+        key={session.id}
+        onClick={() => onSelectSession(session)}
       >
-        Chats
-      </Typography>
+        <ListItemAvatar>
+          <Avatar>{session.urgency.charAt(0)}</Avatar>
+        </ListItemAvatar>
 
-      <List>
-        {sessions.map((session) => (
-          <ListItemButton
-            key={session.id}
-            onClick={() => onSelectSession(session)}
-          >
-            <ListItemAvatar>
-              <Avatar>{session.urgency.charAt(0)}</Avatar>
-            </ListItemAvatar>
-
-            <ListItemText
-            primary={session.title}
-            secondary={session.urgency}
-            />
-          </ListItemButton>
-        ))}
-      </List>
-    </Box>
+        <ListItemText
+          primary={session.title}
+          secondary={session.urgency}
+        />
+      </ListItemButton>
+    ))}
+  </List>
+</Box>
   );
 };
 
