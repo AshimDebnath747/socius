@@ -65,9 +65,6 @@ const PostPage = () => {
 
             console.log(res.data);
             navigate('/chat')
-
-            // Optional: navigate to the chat/session page
-            // navigate(`/chat/${res.data.data.sessionId}`);
         } catch (err) {
             console.error(err);
         }
