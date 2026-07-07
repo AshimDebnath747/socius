@@ -15,6 +15,35 @@ export default function MessageBubble({
     isLastInGroup,
     showTimestamp,
 }: Props) {
+    const getDateTimeLabel = (createdAt: string) => {
+        const messageDate = new Date(createdAt);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const isSameDay = (d1: Date, d2: Date) =>
+            d1.getDate() === d2.getDate() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getFullYear() === d2.getFullYear();
+
+        const time = messageDate.toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        });
+
+        let datePart: string;
+        if (isSameDay(messageDate, today)) datePart = "Today";
+        else if (isSameDay(messageDate, yesterday)) datePart = "Yesterday";
+        else
+            datePart = messageDate.toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            });
+
+        return `${datePart}, ${time}`;
+    };
     return (
         <Box
             display="flex"
@@ -61,10 +90,7 @@ export default function MessageBubble({
                         px: 0.5,
                     }}
                 >
-                    {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    })}
+                    {getDateTimeLabel(message.createdAt)}
                 </Typography>
             )}
         </Box>

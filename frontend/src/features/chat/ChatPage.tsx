@@ -32,7 +32,6 @@ const ChatPage = () => {
     useEffect(() => {
 
         const handleReceiveMessage = (msg: any) => {
-            //console.log(msg)
             const message: Message = {
                 id: String(msg.id),
                 sessionId: String(msg.session_id),
@@ -40,7 +39,9 @@ const ChatPage = () => {
                 content: msg.content,
                 createdAt: msg.created_at,
             };
-
+            console.log(message.createdAt);
+            console.log(typeof message.createdAt);
+            console.log(message.createdAt instanceof Date);
             setMessages((prev) => [...prev, message]);
         };
         socket.on("receive-message", handleReceiveMessage);
@@ -68,6 +69,7 @@ const ChatPage = () => {
                     content: msg.content,
                     createdAt: msg.created_at,
                 }));
+
                 setMessages(messages);
                 socket.emit("join-session", selectedSession.id);
                 const res = await getNextUserById(selectedSession.helper_id, selectedSession.requester_id);
