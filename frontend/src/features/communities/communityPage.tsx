@@ -8,12 +8,25 @@ import { useEffect, useState } from "react";
 
 import CommunitySidebar from "../communities/components/communitiesSidebar";
 import CreateCommunityPage from "../communities/components/CreateCommunityPage";
-
+import { io } from "socket.io-client";
 import { getAllCommunities } from "../../services/community.service";
 import type { Community } from "../../types/community";
-
+import type { Message } from "../chat/types";
+import axios from 'axios';
+import ChatWindow from "../chat/components/ChatWindow";
+import MessageInput from "../chat/components/MessageInput";
+import ChatHeader from "../chat/components/ChatHeader";
+const API = import.meta.env.VITE_BACKEND_URL;
+const socket = io(API, {
+  withCredentials: true,
+});
+const user: string | null = localStorage.getItem("user")
+let CURRENT_USER_ID: string = ""
+if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
 const CommunityPage = () => {
+  const [messages, setMessages] = useState<Message[]>([])
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [loading, setLoading] = useState<boolean>(true)
   const [selectedCommunity, setSelectedCommunity] =
     useState<Community | null>(null);
 
@@ -39,11 +52,59 @@ const CommunityPage = () => {
       ) {
         setSelectedCommunity(data[0] ?? null);
       }
+      setLoading(false)
     } catch (err) {
       console.error(err);
     }
   };
+  useEffect(() => {
 
+    const handleReceiveMessage = (msg: any) => {
+      //console.log(msg)
+      const message: Message = {
+        id: String(msg.id),
+        sessionId: String(msg.session_id),
+        senderId: String(msg.sender_id),
+        content: msg.content,
+        createdAt: msg.created_at,
+      };
+
+      setMessages((prev) => [...prev, message]);
+    };
+    socket.on("receive-message", handleReceiveMessage);
+    return () => {
+      socket.off("receive-message", handleReceiveMessage);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        if (!selectedCommunity) return;
+        console.log("selected session:", selectedCommunity.id)
+
+        const msg = await axios.get(`${API}/api/communities/${selectedCommunity.id}/messages`, {
+          withCredentials: true
+        });
+
+        console.log(msg.data)
+        const messages: Message[] = msg.data?.data?.map((msg: any) => ({
+          id: String(msg.id),
+          sessionId: String(msg.session_id),
+          senderId: String(msg.sender_id),
+          content: msg.content,
+          createdAt: msg.created_at,
+        }));
+        setMessages(messages);
+        socket.emit("join-community", selectedCommunity.id);
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedCommunity]);
   useEffect(() => {
     fetchCommunities();
   }, []);
@@ -71,84 +132,56 @@ const CommunityPage = () => {
           setShowCreate((prev) => !prev)
         }
       />
-
       <Box
         sx={{
           flex: 1,
-          p: 3,
-          overflowY: "auto",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        {showCreate ? (
-          <CreateCommunityPage
-            onSuccess={handleCommunityCreated}
-          />
-        ) : selectedCommunity ? (
-          <>
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-            >
-              {selectedCommunity.name}
-            </Typography>
-
-            <Typography
-              sx={{ mt: 3 }}
-            >
-              {selectedCommunity.description}
-            </Typography>
-
-            <Typography
-              sx={{ mt: 3 }}
-            >
-              <strong>Rules:</strong>{" "}
-              {selectedCommunity.rules}
-            </Typography>
-
-            <Typography
-              sx={{ mt: 3 }}
-            >
-              <strong>Privacy:</strong>{" "}
-              {selectedCommunity.is_private
-                ? "Private"
-                : "Public"}
-            </Typography>
-          </>
-        ) : (
+        {selectedCommunity ? (
           <Box
             sx={{
-              height: "100%",
               display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
             }}
           >
-            <Typography
-              variant="h5"
-              color="text.secondary"
-            >
-              Select a community
-            </Typography>
-          </Box>
-        )}
+            <ChatHeader
+              otherUser={{
+                name: selectedCommunity.name || "Loading...",
+                role: "click for more info"
+              }}
 
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "right",
-          }}
-        >
-          <Alert
-            severity="success"
-            variant="filled"
-            onClose={() => setSnackbarOpen(false)}
-          >
-            Community created successfully!
-          </Alert>
-        </Snackbar>
+
+            />
+
+            <ChatWindow
+              messages={messages}
+              loading={loading}
+              currentUserId={CURRENT_USER_ID}
+            />
+
+            <MessageInput
+              onSend={(content) => {
+                if (!selectedCommunity) return;
+
+                socket.emit("send-message", {
+                  type: "community",
+                  sessionId: selectedCommunity.id,
+                  content,
+                });
+              }}
+              disabled={false}
+            />
+          </Box>
+        ) : (
+          <Typography variant="h5">
+            Select a conversation
+          </Typography>
+        )}
       </Box>
     </Box>
   );

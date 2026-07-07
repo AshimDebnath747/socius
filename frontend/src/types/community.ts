@@ -4,6 +4,6 @@ export interface Community {
     slug: string;
     description: string;
     rules: string;
-    is_private: boolean;
-    created_at: string;
+    isPrivate: boolean;
+    createdAt: string;
 }

@@ -1,4 +1,4 @@
-import { createCommunity, getCommunities, getCommunityById, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole } from "../services/communities.service.js"
+import { createCommunity, getCommunities, getCommunityById, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole, getComminityMessagesService } from "../services/communities.service.js"
 
 export const createCommunityController = async (req, res) => {
 
@@ -27,7 +27,7 @@ export const createCommunityController = async (req, res) => {
 export const getCommunitiesController = async (req, res) => {
     try {
         const userId = req.user.id
-        
+
         const result = await getCommunities(userId)
         res.status(200).json({
             success: true,
@@ -145,6 +145,25 @@ export const changeRoleController = async (req, res) => {
         return res.status(200).json({
             success: false,
             message: "community member's role could not be updated!",
+            data: err.message
+        })
+    }
+}
+
+export const getComminityMessages = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const userId = req.user.id
+        const result = await getComminityMessagesService(communityId, userId)
+        res.status(201).json({
+            success: true,
+            message: "community messages fetched successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "community messages could not be fetched!",
             data: err.message
         })
     }

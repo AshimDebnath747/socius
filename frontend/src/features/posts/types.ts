@@ -1,25 +1,25 @@
 export interface Post {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    categoryId: number;
+    categoryId: string;
     urgency: string;
     preferredMode: string;
-    createdBy: number;
+    createdBy: string;
     name: string,
     createdAt: string;
     status: string;
-    communityId: number | null | undefined;
+    communityId: string | null;
 }
 export interface HelpRequestResponse {
-    id: number;
+    id: string;
     title: string;
     description: string;
-    category_id: number;
+    category_id: string;
     urgency: "low" | "medium" | "high";
     preferred_mode: "text" | "call";
-    community_id: number | null;
-    created_by: number;
+    community_id: string | null;
+    created_by: string;
     name: string;
     created_at: string;
     status: string;
