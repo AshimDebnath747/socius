@@ -15,7 +15,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { Community } from "../../../types/community";
 
 
-
 type CommunitySidebarProps = {
   communities: Community[];
   showCreate: boolean;

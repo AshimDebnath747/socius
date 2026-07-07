@@ -118,8 +118,8 @@ const ChatPage = () => {
                                 name: chatUser?.name || "Loading...",
                                 role: chatUser?.role || "Loading...",
                             }}
-                            
-                            
+
+
                         />
 
                         <ChatWindow
@@ -133,6 +133,7 @@ const ChatPage = () => {
                                 if (!selectedSession) return;
 
                                 socket.emit("send-message", {
+                                    type: "personal",
                                     sessionId: selectedSession.id,
                                     content,
                                 });

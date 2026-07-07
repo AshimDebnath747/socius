@@ -5,10 +5,10 @@ export interface ChatHeaderProps {
     otherUser: {
         name: string;
         avatarUrl?: string;
-        role: "requester" | "helper";
+        role: "requester" | "helper" | "click for more info";
         connected?: boolean;
     };
-    
+
 }
 
 
@@ -16,7 +16,7 @@ export default function ChatHeader({
     otherUser,
 }: ChatHeaderProps) {
 
-    
+
     return (
         <Box
             sx={{
@@ -72,7 +72,11 @@ export default function ChatHeader({
                         {otherUser.name}
                     </Typography>
                     <Chip
-                        label={otherUser.role === "helper" ? "Helper" : "Requester"}
+                        label={otherUser.role === "helper"
+                            ? "Helper"
+                            : otherUser.role === "requester"
+                                ? "Requester"
+                                : "Click for more info"}
                         size="small"
                         sx={{
                             mt: 0.25,
