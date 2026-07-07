@@ -88,20 +88,21 @@ const ChatPage = () => {
             sx={{
                 display: "flex",
                 height: "calc(100vh - 64px)",
+                minHeight: 0,
+                overflow: "hidden",
             }}
         >
             <SessionSidebar
-
                 onSelectSession={setSelectedSession}
-
             />
 
             <Box
                 sx={{
                     flex: 1,
+                    minWidth: 0,
+                    minHeight: 0,
                     display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
+                    overflow: "hidden",
                 }}
             >
                 {selectedSession ? (
@@ -110,7 +111,9 @@ const ChatPage = () => {
                             display: "flex",
                             flexDirection: "column",
                             width: "100%",
-                            height: "100%",
+                            flex: 1,
+                            minHeight: 0,
+                            overflow: "hidden",
                         }}
                     >
                         <ChatHeader
@@ -118,8 +121,6 @@ const ChatPage = () => {
                                 name: chatUser?.name || "Loading...",
                                 role: chatUser?.role || "Loading...",
                             }}
-
-
                         />
 
                         <ChatWindow
@@ -142,9 +143,19 @@ const ChatPage = () => {
                         />
                     </Box>
                 ) : (
-                    <Typography variant="h5">
-                        Select a conversation
-                    </Typography>
+                    <Box
+                        sx={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 0,
+                        }}
+                    >
+                        <Typography variant="h5">
+                            Select a conversation
+                        </Typography>
+                    </Box>
                 )}
             </Box>
         </Box>

@@ -116,9 +116,11 @@ const App = () => {
           Your help request has been accepted!
         </Alert>
       </Snackbar>
-      <Navbar checkAuth={isAuth}
-        setCheckAuth={setIsAuth} />
-      <Box>
+      <Navbar
+        checkAuth={isAuth}
+        setCheckAuth={setIsAuth}
+      />
+      <Box sx={{ minHeight: "calc(100vh - 64px)", overflow: "hidden" }}>
         <Routes>
           <Route
             path="/"

@@ -111,9 +111,7 @@ const CommunityPage = () => {
 
   const handleCommunityCreated = async () => {
     await fetchCommunities();
-
     setShowCreate(false);
-
     setSnackbarOpen(true);
   };
 
@@ -121,7 +119,9 @@ const CommunityPage = () => {
     <Box
       sx={{
         display: "flex",
-        height: "100%",
+        height: "calc(100vh - 64px)",
+        minHeight: 0,
+        overflow: "hidden",
       }}
     >
       <CommunitySidebar
@@ -132,30 +132,51 @@ const CommunityPage = () => {
           setShowCreate((prev) => !prev)
         }
       />
+
       <Box
         sx={{
           flex: 1,
+          minWidth: 0,
+          minHeight: 0,
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: "column",
+          overflow: "hidden",
+          position: "relative",
         }}
       >
-        {selectedCommunity ? (
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbarOpen(false)}
+            severity="success"
+            sx={{ width: "100%" }}
+          >
+            Community created successfully.
+          </Alert>
+        </Snackbar>
+
+        {showCreate ? (
+          <CreateCommunityPage onSuccess={handleCommunityCreated} />
+        ) : selectedCommunity ? (
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
               width: "100%",
-              height: "100%",
             }}
           >
             <ChatHeader
               otherUser={{
                 name: selectedCommunity.name || "Loading...",
-                role: "click for more info"
+                role: "click for more info",
               }}
-
-
             />
 
             <ChatWindow
@@ -178,9 +199,17 @@ const CommunityPage = () => {
             />
           </Box>
         ) : (
-          <Typography variant="h5">
-            Select a conversation
-          </Typography>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 0,
+            }}
+          >
+            <Typography variant="h5">Select a conversation</Typography>
+          </Box>
         )}
       </Box>
     </Box>
