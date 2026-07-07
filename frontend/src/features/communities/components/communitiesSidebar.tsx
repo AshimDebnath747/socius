@@ -32,10 +32,12 @@ const CommunitySidebar = ({
     <Box
       sx={{
         width: 320,
+        minWidth: 320,
         height: "100%",
         borderRight: "1px solid #ddd",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       {/* Header */}
@@ -67,6 +69,7 @@ const CommunitySidebar = ({
       <List
         sx={{
           flex: 1,
+          minHeight: 0,
           overflowY: "auto",
         }}
       >
