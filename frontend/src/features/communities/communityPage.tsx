@@ -60,7 +60,7 @@ const CommunityPage = () => {
     <Box
       sx={{
         display: "flex",
-        height: "100vh",
+        height: "100%",
       }}
     >
       <CommunitySidebar
