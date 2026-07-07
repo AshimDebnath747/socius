@@ -39,7 +39,7 @@ FROM community c
 INNER JOIN communitymember cm
 ON c.id = cm.community_id
 WHERE cm.user_id = $1;`
-    const { rows } = await pool.query(query,[userId])
+    const { rows } = await pool.query(query, [userId])
     return rows
 }
 
@@ -140,4 +140,20 @@ export const changeRole = async (AdminId, role, communityId, userId) => {
     const { rows } = await pool.query(query, [role, rowId])
     console.log(rows)
     return rows
+}
+
+export const getComminityMessagesService = async (communityId, userId) => {
+    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
+    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
+    if (!rows1[0]) {
+        throw new Error("unauthorized user!")
+    }
+
+    const query2 = 'SELECT * FROM messages WHERE community_id = $1 ORDER BY created_at ASC';
+    const { rows: rows2 } = await pool.query(query2, [communityId])
+    console.log("message in ", communityId, ":", rows2)
+    return rows2
+
+
+
 }
