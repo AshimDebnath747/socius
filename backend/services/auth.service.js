@@ -68,7 +68,7 @@ export const checkAuthService = async (token) => {
 
     const decode = jwt.verify(token, process.env.JWT_SECRET)
     const { rows } = await pool.query(
-        "SELECT * FROM users WHERE id = $1",
+        "SELECT id , name , email FROM users WHERE id = $1",
         [decode.id]
     )
     if (rows.length == 0) {

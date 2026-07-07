@@ -29,14 +29,14 @@ export const login = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "user signed up successfully!",
-            user: {
+            data: {
                 id: user.id,
                 name: user.name,
                 email: user.email
             }
         })
     } catch (err) {
-        return res.status(200).json({
+        return res.status(401).json({
             success: false,
             message: "user could not be logged in!",
             data: err.message
@@ -47,8 +47,8 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: true,       
-        sameSite: "none"    
+        secure: true,
+        sameSite: "none"
     });
 
     return res.status(200).json({
