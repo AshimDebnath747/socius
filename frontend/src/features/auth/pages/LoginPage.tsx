@@ -15,12 +15,19 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
-
+import axios from 'axios';
 interface LoginFormValues {
   email: string;
   password: string;
 }
-
+// interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+// }
+// interface LoginResponse {
+//   data : 
+// }
 const LoginPage = () => {
   const { register, handleSubmit } = useForm<LoginFormValues>();
   const [showPassword, setShowPassword] = useState(false);
@@ -32,29 +39,12 @@ const LoginPage = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       console.log("API", API)
-      const response = await fetch(`${API}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // 🔥 important for cookies
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
-      });
-
-      const result = await response.json();
-      //console.log(result.user)
-      localStorage.setItem("user", JSON.stringify(result.user));
-      if (!response.ok) {
-        throw new Error(result.message || "Login failed");
-      }
-
-      //console.log("Login success:", result);
-
-      // 🔥 IMPORTANT CHANGE HERE
-      window.location.href = "/"; // force reload so auth check works
+      const res = await axios.post(`${API}/api/auth/login`, { // 🔥 important for cookies
+        email: data.email,
+        password: data.password,
+      }, { withCredentials: true });
+      localStorage.setItem("user", JSON.stringify(res.data.data));
+      window.location.assign("/") // force reload so auth check works
     } catch (error) {
       const message = error instanceof Error ? error.message : "Login failed";
       alert(message);

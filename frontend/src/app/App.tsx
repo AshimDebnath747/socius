@@ -13,7 +13,7 @@ import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 import PostPage from "../features/posts/components/HelpRequestPage";
 import CommunityPage from "../features/communities/communityPage";
-
+import axios from 'axios';
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -57,14 +57,11 @@ const App = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch(`${API}/api/auth/me`, {
-          credentials: "include",
+        const res = await axios.get(`${API}/api/auth/me`, {
+          withCredentials: true,
         });
-        const data = await res.json()
-        //console.log(data)
-        setIsAuth(data.success);
+        setIsAuth(res.data.success);
       } catch (err) {
-
         setIsAuth(false);
       }
     };
