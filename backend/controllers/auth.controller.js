@@ -9,8 +9,8 @@ export const signup = async (req, res) => {
             data: result
         })
     } catch (err) {
-        console.log("message:", err.message)
-        return res.status(200).json({
+        console.log("message on signup:", err)
+        return res.status(401).json({
             success: false,
             message: "user could not be registered!",
             data: err.message

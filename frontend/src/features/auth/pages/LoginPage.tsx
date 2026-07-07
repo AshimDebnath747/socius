@@ -38,7 +38,6 @@ const LoginPage = () => {
   // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      console.log("API", API)
       const res = await axios.post(`${API}/api/auth/login`, { // 🔥 important for cookies
         email: data.email,
         password: data.password,
@@ -46,7 +45,7 @@ const LoginPage = () => {
       localStorage.setItem("user", JSON.stringify(res.data.data));
       window.location.assign("/") // force reload so auth check works
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Login failed";
+      const message = "wrong credetials bro!";
       alert(message);
     }
   };

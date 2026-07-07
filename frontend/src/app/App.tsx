@@ -14,6 +14,7 @@ import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 import PostPage from "../features/posts/components/HelpRequestPage";
 import CommunityPage from "../features/communities/communityPage";
 import axios from 'axios';
+import Loader from "../components/loader";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -70,7 +71,7 @@ const App = () => {
   }, []);
 
   if (isAuth === null) {
-    return <div>Loading...</div>;
+    return <Loader />
   }
 
   return (
