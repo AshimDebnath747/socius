@@ -24,3 +24,12 @@ export interface HelpRequestResponse {
     created_at: string;
     status: string;
 }
+
+export interface CommunityMember {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    joinedAt: string;
+    profilePicture?: string;
+}

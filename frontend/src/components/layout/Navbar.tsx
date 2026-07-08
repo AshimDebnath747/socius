@@ -73,7 +73,13 @@ const Navbar = ({ checkAuth, setCheckAuth }: navBarAuth) => {
           >
             Community
           </Button>
-
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/explorecommunities"
+          >
+            explore communities
+          </Button>
           {checkAuth ? (
             <Button
               color="inherit"

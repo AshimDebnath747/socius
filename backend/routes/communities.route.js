@@ -2,7 +2,7 @@ import express from 'express';
 import { authMiddleware } from "../middlewares/auth.middleware.js"
 import { validate } from '../middlewares/validate.middleware.js';
 import { createCommunitySchema } from '../validators/communities.validator.js';
-import { createCommunityController, getCommunitiesController, getCommunityByIdController, joinCommunityController, leaveCommunityController, getAllCommunityMembersController, changeRoleController, getComminityMessages } from '../controllers/communities.controller.js';
+import { createCommunityController, getCommunitiesController, getCommunityBySlugController, joinCommunityController, leaveCommunityController, getAllCommunityMembersController, changeRoleController, getComminityMessages, getAllCommunitiesController } from '../controllers/communities.controller.js';
 const router = express.Router()
 
 //middleware
@@ -17,7 +17,8 @@ router.put("/:id/members/:userId/role", changeRoleController)
 
 //get requests:
 router.get("/", getCommunitiesController)
-router.get("/:id", getCommunityByIdController)
+router.get("/all", getAllCommunitiesController)
+router.get("/:slug", getCommunityBySlugController)
 router.get("/:id/members", getAllCommunityMembersController)
 router.get("/:id/messages", getComminityMessages)
 

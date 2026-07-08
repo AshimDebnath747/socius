@@ -13,8 +13,10 @@ import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
 import PostPage from "../features/posts/components/HelpRequestPage";
 import CommunityPage from "../features/communities/communityPage";
+import ExploreCommunities from "../features/communities/pages/explorecommunites";
 import axios from 'axios';
 import Loader from "../components/loader";
+import CommunityInfo from "../features/communities/pages/communityInfo";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -154,7 +156,18 @@ const App = () => {
             path="/help-request/:id"
             element={isAuth ? <PostPage /> : <RegisterPage />}
           />
+          <Route
+            // path="/chat/:session-id"
+            path="/explorecommunities"
+            element={isAuth ? <ExploreCommunities /> : <RegisterPage />}
+          />
+          <Route
+            // path="/chat/:session-id"
+            path="/explorecommunities/:slug"
+            element={isAuth ? <CommunityInfo /> : <RegisterPage />}
+          />
         </Routes>
+
       </Box>
     </>
   );

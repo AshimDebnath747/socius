@@ -43,9 +43,9 @@ WHERE cm.user_id = $1;`
     return rows
 }
 
-export const getCommunityById = async (id) => {
-    const query = 'SELECT * FROM community WHERE id=$1';
-    const { rows } = await pool.query(query, [id])
+export const getCommunityBySlugService = async (slug) => {
+    const query = 'SELECT * FROM community WHERE slug=$1';
+    const { rows } = await pool.query(query, [slug])
     if (!rows[0]) {
         throw new Error("no such community id!")
 
@@ -153,7 +153,13 @@ export const getComminityMessagesService = async (communityId, userId) => {
     const { rows: rows2 } = await pool.query(query2, [communityId])
     console.log("message in ", communityId, ":", rows2)
     return rows2
+}
 
-
-
+export const getAllCommunitiesService = async () => {
+    const query = 'SELECT * FROM community';
+    const { rows } = await pool.query(query)
+    if (!rows[0]) {
+        throw new Error("No communities found Bro!")
+    }
+    return rows
 }
