@@ -1,4 +1,4 @@
-import { createCommunity, getCommunities, getCommunityBySlugService, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole, getComminityMessagesService, getAllCommunitiesService } from "../services/communities.service.js"
+import { createCommunity, getCommunities, getCommunityBySlugService, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole, getComminityMessagesService, getAllCommunitiesService, joinRequestService, getCommunityJoinRequestsService, acceptJoinRequestService, rejectJoinRequestService, getJoinRequestStatusService } from "../services/communities.service.js"
 
 export const createCommunityController = async (req, res) => {
 
@@ -88,7 +88,6 @@ export const leaveCommunityController = async (req, res) => {
     try {
         const communityId = req.params.id
         const userId = req.user.id
-
         const result = await leaveCommunity(communityId, userId)
         res.status(201).json({
             success: true,
@@ -185,3 +184,102 @@ export const getAllCommunitiesController = async (req, res) => {
         })
     }
 }
+
+export const joinRequestController = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const userId = req.user.id
+        const result = await joinRequestService(communityId, userId)
+        res.status(201).json({
+            success: true,
+            message: "oin request inserted successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "join request could not be inserted!",
+            data: err.message
+        })
+    }
+}
+
+export const getCommunityJoinRequestsController = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const userId = req.user.id
+        const result = await getCommunityJoinRequestsService(communityId, userId)
+        res.status(201).json({
+            success: true,
+            message: "join request fetched successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "join request could not be fetched!",
+            data: err.message
+        })
+    }
+}
+
+export const acceptJoinRequestController = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const requestId = req.params.requestId
+        const userId = req.user.id
+        const result = await acceptJoinRequestService(communityId, requestId, userId)
+        res.status(201).json({
+            success: true,
+            message: "join request accepted successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "join request could not be accepted!",
+            data: err.message
+        })
+    }
+}
+
+export const rejectJoinRequestController = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const requestId = req.params.requestId
+        const userId = req.user.id
+        const result = await rejectJoinRequestService(communityId, requestId, userId)
+        res.status(201).json({
+            success: true,
+            message: "join request rejected successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "join request could not be rejected!",
+            data: err.message
+        })
+    }
+}
+
+export const getJoinRequestStatus = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const userId = req.user.id
+        const result = await getJoinRequestStatusService(communityId, userId)
+        res.status(201).json({
+            success: true,
+            message: "join request rejected successfully!",
+            data: result
+        })
+    } catch (err) {
+        return res.status(200).json({
+            success: false,
+            message: "join request could not be rejected!",
+            data: err.message
+        })
+    }
+
+}
+

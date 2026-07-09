@@ -163,3 +163,290 @@ export const getAllCommunitiesService = async () => {
     }
     return rows
 }
+
+export const joinRequestService = async (communityId, userId) => {
+    const community = await pool.query(
+        `SELECT id, is_private
+     FROM community
+     WHERE id = $1`,
+        [communityId]
+    );
+
+    if (community.rowCount === 0) {
+        throw new Error("Community not found.");
+    }
+
+    if (!community.rows[0].is_private) {
+        throw new Error(
+            "This is a public community. Use the join endpoint instead."
+        );
+    }
+
+    // Already a member?
+    const member = await pool.query(
+        `SELECT 1
+     FROM communitymember
+     WHERE community_id = $1
+     AND user_id = $2`,
+        [communityId, userId]
+    );
+
+    if (member.rowCount) {
+        throw new Error("You are already a member.");
+    }
+
+    // Existing pending request?
+    const request = await pool.query(
+        `SELECT status
+     FROM community_join_requests
+     WHERE community_id = $1
+     AND user_id = $2`,
+        [communityId, userId]
+    );
+
+    if (request.rowCount) {
+        throw new Error("You already have a pending request.");
+    }
+
+    // Create request
+    const response = await pool.query(
+        `INSERT INTO community_join_requests
+        (community_id, user_id)
+     VALUES ($1, $2) RETURNING *`,
+        [communityId, userId]
+    );
+
+    return response.rows
+}
+
+export const getCommunityJoinRequestsService = async (communityId, userId) => {
+    const permission = await pool.query(
+        `
+    SELECT role
+    FROM communitymember
+    WHERE community_id = $1
+      AND user_id = $2
+      AND role IN ('owner', 'moderator')
+    `,
+        [communityId, userId]
+    );
+
+    if (permission.rowCount === 0) {
+        throw new Error(
+            "You are not authorized to view join requests."
+        );
+    }
+
+    // Fetch pending join requests
+    const result = await pool.query(
+        `
+    SELECT
+      cjr.id,
+      cjr.community_id,
+      cjr.user_id,
+      cjr.status,
+      cjr.message,
+      cjr.created_at,
+
+      u.name,
+      u.email,
+      u.avatar
+
+    FROM community_join_requests cjr
+    JOIN users u
+      ON u.id = cjr.user_id
+
+    WHERE cjr.community_id = $1
+      AND cjr.status = 'pending'
+
+    ORDER BY cjr.created_at ASC
+    `,
+        [communityId]
+    );
+
+    return result.rows;
+}
+
+export const acceptJoinRequestService = async (communityId, requestId, currentUserId) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        // Verify owner/moderator permissions
+        const permission = await client.query(
+            `
+      SELECT role
+      FROM communitymember
+      WHERE community_id = $1
+        AND user_id = $2
+        AND role IN ('owner', 'moderator')
+      `,
+            [communityId, currentUserId]
+        );
+
+        if (permission.rowCount === 0) {
+            throw new Error("You are not authorized to accept join requests.");
+        }
+
+        // Get the pending join request
+        const request = await client.query(
+            `
+      SELECT community_id, user_id, status
+      FROM community_join_requests
+      WHERE id = $1
+        AND community_id = $2
+      `,
+            [requestId, communityId]
+        );
+
+        if (request.rowCount === 0) {
+            throw new Error("Join request not found.");
+        }
+
+        const joinRequest = request.rows[0];
+
+        if (joinRequest.status !== "pending") {
+            throw new Error("This request has already been processed.");
+        }
+
+        // Check if already a member
+        const member = await client.query(
+            `
+      SELECT 1
+      FROM communitymember
+      WHERE community_id = $1
+        AND user_id = $2
+      `,
+            [communityId, joinRequest.user_id]
+        );
+
+        if (member.rowCount > 0) {
+            throw new Error("User is already a member.");
+        }
+
+        // Add member
+        await client.query(
+            `
+      INSERT INTO communitymember
+      (
+        community_id,
+        user_id,
+        role
+      )
+      VALUES ($1, $2, 'member')
+      `,
+            [communityId, joinRequest.user_id]
+        );
+
+        // Mark request as accepted
+        await client.query(
+            `
+      UPDATE community_join_requests
+      SET status = 'accepted'
+      WHERE id = $1
+      `,
+            [requestId]
+        );
+
+        await client.query("COMMIT");
+
+        return {
+            success: true,
+            message: "Join request accepted successfully.",
+        };
+    } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
+export const rejectJoinRequestService = async (communityId, requestId, currentUserId) => {
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        // Verify owner/moderator permissions
+        const permission = await client.query(
+            `
+      SELECT role
+      FROM communitymember
+      WHERE community_id = $1
+        AND user_id = $2
+        AND role IN ('owner', 'moderator')
+      `,
+            [communityId, currentUserId]
+        );
+
+        if (permission.rowCount === 0) {
+            throw new Error("You are not authorized to reject join requests.");
+        }
+
+        // Verify the request exists
+        const request = await client.query(
+            `
+      SELECT status
+      FROM community_join_requests
+      WHERE id = $1
+        AND community_id = $2
+      `,
+            [requestId, communityId]
+        );
+
+        if (request.rowCount === 0) {
+            throw new Error("Join request not found.");
+        }
+
+        if (request.rows[0].status !== "pending") {
+            throw new Error("This request has already been processed.");
+        }
+
+        // Mark as rejected
+        await client.query(
+            `
+      UPDATE community_join_requests
+      SET status = 'rejected'
+      WHERE id = $1
+      `,
+            [requestId]
+        );
+
+        await client.query("COMMIT");
+
+        return {
+            success: true,
+            message: "Join request rejected successfully.",
+        };
+    } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
+export const getJoinRequestStatusService = async (communityId, userId) => {
+    const result = await pool.query(
+        `
+        SELECT status
+        FROM community_join_requests
+        WHERE community_id = $1
+          AND user_id = $2
+        `,
+        [communityId, userId]
+    );
+    console.log(result)
+    if (result.rowCount === 0) {
+        return {
+            requested: false,
+            status: null,
+        };
+    }
+    return {
+        requested: true,
+        status: result.rows[0].status,
+    };
+};
