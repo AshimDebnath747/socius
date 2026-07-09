@@ -11,3 +11,8 @@ export const getNextUserById = async (
 
   return res.data.data;
 };
+export const getProfile = async ()=>{
+  const profile = await api.get("/api/user/")
+
+  return profile.data.data
+}

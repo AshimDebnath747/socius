@@ -17,6 +17,7 @@ import ExploreCommunities from "../features/communities/pages/explorecommunites"
 import axios from 'axios';
 import Loader from "../components/loader";
 import CommunityInfo from "../features/communities/pages/communityInfo";
+import UserProfile from "../features/profile/UserProfile";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -124,7 +125,7 @@ const App = () => {
         <Routes>
           <Route
             path="/"
-            element={isAuth ? <WelcomePage /> : <RegisterPage />}
+            element={isAuth ? <FeedPage /> : <RegisterPage />}
           />
 
           <Route path="/login" element={<LoginPage />} />
@@ -133,38 +134,40 @@ const App = () => {
           {/* Protected example */}
           <Route
             path="/feed"
-            element={isAuth ? <FeedPage /> : <RegisterPage />}
+            element={isAuth ? <FeedPage /> : <LoginPage />}
           />
 
           <Route
             path="/create-community"
-            element={isAuth ? <CommunityPage /> : <RegisterPage />}
+            element={isAuth ? <CommunityPage /> : <LoginPage />}
           />
 
           <Route
             // path="/chat/:session-id"
             path="/chat"
-            element={isAuth ? <ChatPage /> : <RegisterPage />}
+            element={isAuth ? <ChatPage /> : <LoginPage />}
           />
           <Route
             // path="/chat/:session-id"
             path="/helprequest"
-            element={isAuth ? <HelpRequestForm /> : <RegisterPage />}
+            element={isAuth ? <HelpRequestForm /> : <LoginPage />}
           />
           <Route
             // path="/chat/:session-id"
             path="/help-request/:id"
-            element={isAuth ? <PostPage /> : <RegisterPage />}
+            element={isAuth ? <PostPage /> : <LoginPage />}
           />
           <Route
             // path="/chat/:session-id"
             path="/explorecommunities"
-            element={isAuth ? <ExploreCommunities /> : <RegisterPage />}
+            element={isAuth ? <ExploreCommunities /> : <LoginPage />}
+
           />
+          <Route path="/profile" element={isAuth ?<UserProfile />  : <LoginPage />} />
           <Route
             // path="/chat/:session-id"
             path="/explorecommunities/:slug"
-            element={isAuth ? <CommunityInfo /> : <RegisterPage />}
+            element={isAuth ? <CommunityInfo /> : <LoginPage />}
           />
         </Routes>
 
