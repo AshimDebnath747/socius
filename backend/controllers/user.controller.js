@@ -1,8 +1,8 @@
 import { getUserById, putUser, getReviewsById, getNextUserById } from "../services/user.service.js";
 export const getUserByIdController = async (req, res) => {
-    const { id } = req.params
+    const userId  = req.user.id
     try {
-        const result = await getUserById(id);
+        const result = await getUserById(userId);
 
         return res.status(201).json({
             success: true,

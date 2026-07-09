@@ -9,7 +9,7 @@ const router = express.Router()
 router.use(authMiddleware)
 
 //get requests
-router.get("/:id", getUserByIdController)
+router.get("/", getUserByIdController)
 router.post("/next", getNextUserByIdController)
 router.get("/:id/reviews", validateQuery(getReviewsValidation), getReviewsByIdController)
 

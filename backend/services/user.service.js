@@ -1,15 +1,74 @@
 import { pool } from "../config/db.js";
 
 export const getUserById = async (id) => {
-  const query = `
-    SELECT id , name , email , role , rating
+  const userQuery = `
+    SELECT
+      id,
+      name,
+      email,
+      role,
+      avatar,
+      headline,
+      bio,
+      location,
+      website,
+      skills,
+      rating,
+      created_at
     FROM users
-    WHERE id = $1
+    WHERE id = $1;
   `;
 
-  const { rows } = await pool.query(query, [id]);
-  return rows[0];
-}
+  const statsQuery = `
+    SELECT
+      (SELECT COUNT(*)
+       FROM session
+       WHERE helper_id = $1 OR requester_id = $1) AS total_sessions,
+
+      (SELECT COUNT(*)
+       FROM review
+       WHERE reviewed_user_id = $1) AS total_reviews,
+
+      (SELECT ROUND(AVG(rating), 1)
+       FROM review
+       WHERE reviewed_user_id = $1) AS average_rating,
+
+      (SELECT COUNT(*)
+       FROM communitymember
+       WHERE user_id = $1) AS communities_joined;
+  `;
+
+  const communityQuery = `
+    SELECT
+      c.id,
+      c.name,
+      c.avatar,
+      COUNT(cm2.user_id) AS total_members
+    FROM communitymember cm
+    JOIN community c
+      ON cm.community_id = c.id
+    LEFT JOIN communitymember cm2
+      ON cm2.community_id = c.id
+    WHERE cm.user_id = $1
+    GROUP BY
+      c.id,
+      c.name,
+      c.avatar
+    ORDER BY c.name;
+  `;
+
+  const [userResult, statsResult, communityResult] = await Promise.all([
+    pool.query(userQuery, [id]),
+    pool.query(statsQuery, [id]),
+    pool.query(communityQuery, [id]),
+  ]);
+
+  return {
+    user: userResult.rows[0],
+    stats: statsResult.rows[0],
+    communities: communityResult.rows,
+  };
+};
 export const putUser = async (name, email, skills, id) => {
   const query = `
       UPDATE users
