@@ -20,6 +20,9 @@ import CommunityInfo from "../features/communities/pages/communityInfo";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
+  reconnection: true,
+  reconnectionAttempts: 3,
+  reconnectionDelay: 2000,
 });
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);

@@ -35,26 +35,25 @@ const CommunityPage = () => {
 
   const fetchCommunities = async () => {
     try {
+      setLoading(true);
+
       const data = await getAllCommunities();
 
       setCommunities(data);
 
-      // Select first community if none selected
-      if (data.length > 0 && !selectedCommunity) {
-        setSelectedCommunity(data[0]);
-      }
+      setSelectedCommunity((prev) => {
+        if (data.length === 0) return null;
 
-      // If selected community no longer exists,
-      // select the first available community.
-      if (
-        selectedCommunity &&
-        !data.find((c: { id: number; }) => c.id === selectedCommunity.id)
-      ) {
-        setSelectedCommunity(data[0] ?? null);
-      }
-      setLoading(false)
+        if (!prev) return data[0];
+
+        const exists = data.some((c) => c.id === prev.id);
+
+        return exists ? prev : data[0];
+      });
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
   useEffect(() => {
