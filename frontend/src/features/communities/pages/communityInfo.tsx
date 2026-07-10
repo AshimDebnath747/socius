@@ -32,7 +32,25 @@ const CommunityInfo = () => {
     const [loadingMembers, setLoadingMembers] = useState(true);
     const [joined, setJoined] = useState(false)
     const [requested, setRequested] = useState(false)
+    useEffect(() => {
+        const checkRequestStatus = async () => {
+            try {
+                if (community !== null) {
 
+                    const res = await axios.get(`${API}/api/communities/${community.id}/join-request/status`, { withCredentials: true })
+                    console.log("request status", res.data.data)
+                    if (res.data.data.status === 'pending') {
+                        setRequested(true)
+                    }
+                } else {
+                    console.log("no community found!")
+                }
+            } catch (err) {
+                console.log("can not fetch request status", err)
+            }
+        }
+        checkRequestStatus()
+    }, [community])
     useEffect(() => {
         const fetchCommunity = async () => {
             try {
@@ -81,6 +99,7 @@ const CommunityInfo = () => {
                 );
 
                 setMembers(mappedMembers);
+                console.log("current user id:", CURRENT_USER_ID)
                 setJoined(
                     mappedMembers.some(member => member.id === CURRENT_USER_ID))
             } catch (err) {
@@ -93,7 +112,21 @@ const CommunityInfo = () => {
         fetchMembers();
     }, [community]);
     const handleRequest = async () => {
-        setRequested(true)
+        if (community === null) {
+            return
+        }
+        else {
+            try {
+                const res = await axios.post(`${API}/api/communities/${community?.id}/join-request`, {},
+                    { withCredentials: true })
+                console.log(res)
+                setRequested(true)
+            } catch (err) {
+                console.log("error occured", err)
+                setRequested(false)
+            }
+
+        }
     }
     const handleJoin = async () => {
         try {
@@ -177,6 +210,7 @@ const CommunityInfo = () => {
                     startIcon={requested ? <CheckIcon /> : <GroupAddIcon />}
                     onClick={handleRequest}
                     sx={{
+                        ml: 50,
                         textTransform: "none",
                         borderRadius: 2,
                         minWidth: 170,
@@ -184,11 +218,13 @@ const CommunityInfo = () => {
                 >
                     {requested ? "request sent" : "send join Request"}
                 </Button> : <Button
+
                     variant={joined ? "outlined" : "contained"}
                     color={joined ? "success" : "primary"}
                     startIcon={joined ? <CheckIcon /> : <GroupAddIcon />}
                     onClick={handleJoin}
                     sx={{
+                        ml: 50,
                         textTransform: "none",
                         borderRadius: 2,
                         minWidth: 170,
@@ -241,7 +277,7 @@ const CommunityInfo = () => {
                 members={members}
                 loading={loadingMembers}
             />
-        </Box>
+        </Box >
     );
 };
 

@@ -200,7 +200,7 @@ export const joinRequestService = async (communityId, userId) => {
         `SELECT status
      FROM community_join_requests
      WHERE community_id = $1
-     AND user_id = $2`,
+     AND user_id = $2 AND status='pending'`,
         [communityId, userId]
     );
 
@@ -438,7 +438,7 @@ export const getJoinRequestStatusService = async (communityId, userId) => {
         `,
         [communityId, userId]
     );
-    console.log(result)
+    console.log("req status :", result)
     if (result.rowCount === 0) {
         return {
             requested: false,
@@ -450,3 +450,22 @@ export const getJoinRequestStatusService = async (communityId, userId) => {
         status: result.rows[0].status,
     };
 };
+
+export const checkMembershipService = async (communityId, userId) => {
+    const result = await pool.query(
+        `
+        SELECT role
+        FROM communitymember
+        WHERE community_id = $1
+          AND user_id = $2
+        LIMIT 1
+        `,
+        [communityId, userId]
+    );
+
+    if (result.rows.length === 0) {
+        return null;
+    }
+
+    return result.rows[0];
+}

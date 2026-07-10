@@ -1,4 +1,4 @@
-import { createCommunity, getCommunities, getCommunityBySlugService, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole, getComminityMessagesService, getAllCommunitiesService, joinRequestService, getCommunityJoinRequestsService, acceptJoinRequestService, rejectJoinRequestService, getJoinRequestStatusService } from "../services/communities.service.js"
+import { createCommunity, getCommunities, getCommunityBySlugService, joinCommunity, leaveCommunity, getAllCommunityMembers, changeRole, getComminityMessagesService, getAllCommunitiesService, joinRequestService, getCommunityJoinRequestsService, acceptJoinRequestService, rejectJoinRequestService, getJoinRequestStatusService, checkMembershipService } from "../services/communities.service.js"
 
 export const createCommunityController = async (req, res) => {
 
@@ -281,5 +281,31 @@ export const getJoinRequestStatus = async (req, res) => {
         })
     }
 
+}
+
+export const checkMembershipController = async (req, res) => {
+    try {
+        const communityId = req.params.id
+        const userId = req.user.id
+
+        const role = await checkMembershipService(
+            communityId,
+            userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: role,
+            message: "Role fetched successfully!"
+        });
+
+    } catch (err) {
+        console.error(err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
 }
 

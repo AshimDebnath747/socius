@@ -67,6 +67,9 @@ const App = () => {
         const res = await axios.get(`${API}/api/auth/me`, {
           withCredentials: true,
         });
+        console.log("auth res", res.data.data.user)
+        localStorage.setItem("user", JSON.stringify(res.data.data.user));
+        console.log("user:", localStorage.getItem("user"))
         setIsAuth(res.data.success);
       } catch (err) {
         setIsAuth(false);
@@ -166,7 +169,7 @@ const App = () => {
             element={isAuth ? <ExploreCommunities /> : <LoginPage />}
 
           />
-          <Route path="/profile" element={isAuth ?<UserProfile />  : <LoginPage />} />
+          <Route path="/profile" element={isAuth ? <UserProfile /> : <LoginPage />} />
           <Route
             // path="/chat/:session-id"
             path="/explorecommunities/:slug"

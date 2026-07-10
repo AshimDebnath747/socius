@@ -1,4 +1,5 @@
 export interface Community {
+    avatar: string;
     id: number;
     name: string;
     slug: string;

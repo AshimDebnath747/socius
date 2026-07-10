@@ -33,3 +33,25 @@ export interface CommunityMember {
     joinedAt: string;
     profilePicture?: string;
 }
+
+export interface ChatHeaderProps {
+    otherUser: {
+        name: string;
+        avatarUrl?: string;
+        role: "requester" | "helper" | "click for more info";
+        connected?: boolean;
+    };
+    onClick?: () => void;
+}
+
+export interface JoinRequest {
+    id: number;
+    communityId: number;
+    userId: number;
+    status: "pending" | "accepted" | "rejected";
+    message: string | null;
+    createdAt: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+}

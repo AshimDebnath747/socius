@@ -16,6 +16,7 @@ import axios from 'axios';
 import ChatWindow from "../chat/components/ChatWindow";
 import MessageInput from "../chat/components/MessageInput";
 import ChatHeader from "../chat/components/ChatHeader";
+import CommunityDashboard from "./components/communityDashboard";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -29,7 +30,7 @@ const CommunityPage = () => {
   const [loading, setLoading] = useState<boolean>(true)
   const [selectedCommunity, setSelectedCommunity] =
     useState<Community | null>(null);
-
+  const [showDashboard, setShowDashboard] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
@@ -176,15 +177,20 @@ const CommunityPage = () => {
                 name: selectedCommunity.name || "Loading...",
                 role: "click for more info",
               }}
+              onClick={() => setShowDashboard(true)}
             />
+            {showDashboard ? (
+              <CommunityDashboard community={selectedCommunity} onBack={() => setShowDashboard(false)} />
+            ) : (
+              <ChatWindow
+                messages={messages}
+                loading={loading}
+                currentUserId={CURRENT_USER_ID}
+              />
+            )}
 
-            <ChatWindow
-              messages={messages}
-              loading={loading}
-              currentUserId={CURRENT_USER_ID}
-            />
 
-            <MessageInput
+            {!showDashboard && <MessageInput
               onSend={(content) => {
                 if (!selectedCommunity) return;
 
@@ -195,7 +201,7 @@ const CommunityPage = () => {
                 });
               }}
               disabled={false}
-            />
+            />}
           </Box>
         ) : (
           <Box

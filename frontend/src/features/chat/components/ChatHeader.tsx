@@ -1,24 +1,16 @@
 import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
 import { chatColors, chatFonts } from "../theme/chatTheme";
-
-export interface ChatHeaderProps {
-    otherUser: {
-        name: string;
-        avatarUrl?: string;
-        role: "requester" | "helper" | "click for more info";
-        connected?: boolean;
-    };
-
-}
+import type { ChatHeaderProps } from "../../posts/types";
 
 
 export default function ChatHeader({
-    otherUser,
+    otherUser, onClick
 }: ChatHeaderProps) {
 
 
     return (
         <Box
+            onClick={onClick}
             sx={{
                 bgcolor: chatColors.surface,
                 borderBottom: `1px solid ${chatColors.line}`,

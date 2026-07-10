@@ -43,6 +43,7 @@ const LoginPage = () => {
         email: data.email,
         password: data.password,
       }, { withCredentials: true });
+      console.log(res.data.data)
       localStorage.setItem("user", JSON.stringify(res.data.data));
       window.location.assign("/") // force reload so auth check works
     } catch (error) {
