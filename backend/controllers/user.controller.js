@@ -1,4 +1,11 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { getUserById, putUser, getReviewsById, getNextUserById, updateAvatarService } from "../services/user.service.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, "..", "uploads", "avatars");
 
 export const getUserByIdController = async (req, res) => {
     const userId  = req.params.id ?? req.user.id
@@ -117,7 +124,6 @@ export const getNextUserByIdController = async (req, res) => {
 
 export const updateAvatarController = async (req, res, next) => {
   try {
-    // Check if an image was uploaded
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -125,13 +131,26 @@ export const updateAvatarController = async (req, res, next) => {
       });
     }
 
-    // Logged-in user's ID (set by authenticate middleware)
     const userId = req.user.id;
-
-    // Store the relative path in the database
     const avatar = `/uploads/avatars/${req.file.filename}`;
 
-    // Update the user's avatar
+    const currentUser = await getUserById(userId);
+    const previousAvatar = currentUser?.user?.avatar;
+
+    if (previousAvatar && previousAvatar.startsWith("/uploads/avatars/")) {
+      const previousFileName = path.basename(previousAvatar);
+      const previousFilePath = path.join(uploadsDir, previousFileName);
+
+      try {
+        await fs.promises.access(previousFilePath);
+        await fs.promises.unlink(previousFilePath);
+      } catch (error) {
+        if (error.code !== "ENOENT") {
+          console.error("Failed to remove previous avatar:", error.message);
+        }
+      }
+    }
+
     const updatedUser = await updateAvatarService(userId, avatar);
 
     return res.status(200).json({

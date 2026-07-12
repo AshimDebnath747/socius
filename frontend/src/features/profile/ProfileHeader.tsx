@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-
+import AddAPhotoRoundedIcon from '@mui/icons-material/AddAPhotoRounded';
 import EditIcon from "@mui/icons-material/Edit";
 import LocationOnRoundedIcon from "@mui/icons-material/LocationOnRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
@@ -123,8 +123,7 @@ export default function ProfileHeader({
                 slotProps={{
                   img: {
                     style: {
-                      height: "100%",
-                      width: "100%",
+                      
                       objectFit: "cover",
                       objectPosition: "center",
                     },
@@ -161,7 +160,7 @@ export default function ProfileHeader({
                     },
                   }}
                 >
-                  <EditIcon fontSize="small" />
+                  <AddAPhotoRoundedIcon fontSize="small" />
                 </IconButton>
               )}
             </Box>
