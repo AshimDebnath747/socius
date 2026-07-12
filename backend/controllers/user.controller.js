@@ -1,6 +1,7 @@
-import { getUserById, putUser, getReviewsById, getNextUserById } from "../services/user.service.js";
+import { getUserById, putUser, getReviewsById, getNextUserById, updateAvatarService } from "../services/user.service.js";
+
 export const getUserByIdController = async (req, res) => {
-    const userId  = req.user.id
+    const userId  = req.params.id ?? req.user.id
     try {
         const result = await getUserById(userId);
 
@@ -20,23 +21,44 @@ export const getUserByIdController = async (req, res) => {
 }
 
 export const putUserController = async (req, res) => {
-    const { name, email, skills, id } = req.body
-    try {
-        const result = await putUser(name, email, skills, id)
-        return res.status(201).json({
-            success: true,
-            message: "user updated successfully",
-            data: result
-        })
-    } catch (err) {
-        console.log("message:", err.message)
-        return res.status(200).json({
-            success: false,
-            message: "user could not be updated!",
-            data: err.message
-        })
-    }
-}
+  try {
+    const {
+      name,
+      headline,
+      bio,
+      about,
+      location,
+      website,
+      skills,
+    } = req.body;
+
+    const id = req.user.id;
+
+    const result = await putUser(
+      id,
+      name,
+      headline,
+      bio,
+      about,
+      location,
+      website,
+      skills
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully.",
+      data: result,
+    });
+  } catch (err) {
+    console.log(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 export const getReviewsByIdController = async (req, res) => {
 
@@ -92,3 +114,32 @@ export const getNextUserByIdController = async (req, res) => {
         });
     }
 }
+
+export const updateAvatarController = async (req, res, next) => {
+  try {
+    // Check if an image was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload an image.",
+      });
+    }
+
+    // Logged-in user's ID (set by authenticate middleware)
+    const userId = req.user.id;
+
+    // Store the relative path in the database
+    const avatar = `/uploads/avatars/${req.file.filename}`;
+
+    // Update the user's avatar
+    const updatedUser = await updateAvatarService(userId, avatar);
+
+    return res.status(200).json({
+      success: true,
+      message: "Avatar updated successfully.",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

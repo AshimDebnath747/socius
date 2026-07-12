@@ -50,7 +50,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
         method: "POST",
         credentials: "include",
       });
-
+      localStorage.removeItem("user");
       setCheckAuth(false);
       navigate("/login", { replace: true });
     } catch (err) {

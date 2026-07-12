@@ -41,7 +41,7 @@ const ChatPage = () => {
             };
             console.log(message.createdAt);
             console.log(typeof message.createdAt);
-            console.log(message.createdAt instanceof Date);
+            // console.log(message.createdAt instanceof Date);
             setMessages((prev) => [...prev, message]);
         };
         socket.on("receive-message", handleReceiveMessage);

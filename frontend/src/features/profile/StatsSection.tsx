@@ -10,35 +10,43 @@ import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismR
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import {type UserStats} from "../../types/user.ts"
+
+interface props{
+  userStats : UserStats
+}
+
+
+
+const StatsSection = ({userStats}: props) => {
 
 const stats = [
   {
     title: "Helped",
-    value: 24,
+    value: userStats?.total_helped ?? 0,
     icon: <VolunteerActivismRoundedIcon fontSize="large" />,
     color: "#2563EB",
   },
   {
     title: "Requests",
-    value: 12,
+    value: userStats?.total_requested ?? 0,
     icon: <DescriptionRoundedIcon fontSize="large" />,
     color: "#10B981",
   },
   {
     title: "Communities",
-    value: 8,
+    value: userStats?.communities_joined ?? 0,
     icon: <GroupsRoundedIcon fontSize="large" />,
     color: "#F59E0B",
   },
   {
     title: "Rating",
-    value: "4.9",
+    value: userStats?.average_rating ?? "0.0",
     icon: <StarRoundedIcon fontSize="large" />,
     color: "#EF4444",
   },
 ];
 
-const StatsSection = () => {
   return (
     <Grid container spacing={3}>
       {stats.map((item) => (

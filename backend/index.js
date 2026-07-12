@@ -10,9 +10,15 @@ import HelpRouter from "./routes/help.route.js"
 import sessionRouter from "./routes/session.route.js"
 import reviewRouter from "./routes/reviews.route.js"
 import notificationRouter from './routes/notifications.route.js'
+import path from "path";
 import "./config/passport.js"
 import passport from 'passport';
 import { initSocket } from './sockets/index.js';
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
 const app = express();
 app.use(passport.initialize());
 app.use(express.json())
@@ -22,6 +28,11 @@ app.use(cors({
 }));
 console.log("enfdd:", process.env.FEV)
 app.use(cookieParser());
+
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 
 app.use('/api/auth', authRouter);
 app.use("/api/user", userRouter);

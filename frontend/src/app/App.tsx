@@ -61,23 +61,31 @@ const App = () => {
 
     return () => socket.off("connect")
   }, [])
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await axios.get(`${API}/api/auth/me`, {
-          withCredentials: true,
-        });
-        console.log("auth res", res.data.data.user)
-        localStorage.setItem("user", JSON.stringify(res.data.data.user));
-        console.log("user:", localStorage.getItem("user"))
-        setIsAuth(res.data.success);
-      } catch (err) {
+ useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const res = await axios.get(`${API}/api/auth/me`, {
+        withCredentials: true,
+      });
+
+      if (res.data.success && res.data.data?.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(res.data.data.user)
+        );
+        setIsAuth(true);
+      } else {
+        localStorage.removeItem("user");
         setIsAuth(false);
       }
-    };
+    } catch (err) {
+      localStorage.removeItem("user");
+      setIsAuth(false);
+    }
+  };
 
-    checkAuth();
-  }, []);
+  checkAuth();
+}, []);
 
   if (isAuth === null) {
     return <Loader />

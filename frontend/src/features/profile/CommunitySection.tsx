@@ -9,52 +9,13 @@ import {
   Typography,
 } from "@mui/material";
 
-const communities = [
-  {
-    id: 1,
-    name: "React Developers",
-    members: "2.3k Members",
-    description: "Frontend development discussions.",
-    image: "https://i.pravatar.cc/150?img=10",
-  },
-  {
-    id: 2,
-    name: "Python Club",
-    members: "1.8k Members",
-    description: "Python programming and AI.",
-    image: "https://i.pravatar.cc/150?img=20",
-  },
-  {
-    id: 3,
-    name: "Competitive Coding",
-    members: "3.1k Members",
-    description: "DSA & Coding contests.",
-    image: "https://i.pravatar.cc/150?img=30",
-  },
-  {
-    id: 4,
-    name: "Machine Learning",
-    members: "4.8k Members",
-    description: "Deep Learning & ML.",
-    image: "https://i.pravatar.cc/150?img=40",
-  },
-  {
-    id: 5,
-    name: "UI/UX Designers",
-    members: "1.2k Members",
-    description: "Design systems & Figma.",
-    image: "https://i.pravatar.cc/150?img=50",
-  },
-  {
-    id: 6,
-    name: "Flutter",
-    members: "2.0k Members",
-    description: "Flutter & Dart.",
-    image: "https://i.pravatar.cc/150?img=60",
-  },
-];
+import type { Community } from "../../types/user";
 
-const CommunitySection = () => {
+interface CommunitySectionProps {
+  communities: Community[];
+}
+
+const CommunitySection = ({ communities }: CommunitySectionProps) => {
   return (
     <Card
       elevation={2}
@@ -81,75 +42,82 @@ const CommunitySection = () => {
             gap: 3,
           }}
         >
-          {communities.map((community) => (
-            <Card
-              key={community.id}
-              variant="outlined"
-              sx={{
-                borderRadius: 3,
-                transition: ".25s",
-                textAlign: "center",
-
-                "&:hover": {
-                  transform: "translateY(-5px)",
-                  boxShadow: 6,
-                },
-              }}
-            >
-              <CardContent
+          {communities.length > 0 ? (
+            communities.map((community) => (
+              <Card
+                key={community.id}
+                variant="outlined"
                 sx={{
-                  py: 3,
-                  px: 2,
+                  borderRadius: 3,
+                  textAlign: "center",
+                  transition: ".25s",
+                  "&:hover": {
+                    transform: "translateY(-5px)",
+                    boxShadow: 6,
+                  },
                 }}
               >
-                <Stack spacing={1.5} alignItems="center">
-                  <Avatar
-                    src={community.image}
-                    sx={{
-                      width: 60,
-                      height: 60,
-                    }}
-                  />
+                <CardContent
+                  sx={{
+                    py: 3,
+                    px: 2,
+                  }}
+                >
+                  <Stack spacing={1.5} alignItems="center">
+                    <Avatar
+                      src={community.avatar ?? undefined}
+                      sx={{
+                        width: 60,
+                        height: 60,
+                      }}
+                    >
+                      {community.name.charAt(0).toUpperCase()}
+                    </Avatar>
 
-                  <Typography
-                    fontWeight={700}
-                    fontSize={18}
-                  >
-                    {community.name}
-                  </Typography>
+                    <Typography
+                      fontWeight={700}
+                      fontSize={18}
+                    >
+                      {community.name}
+                    </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    {community.members}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {community.total_members} Members
+                    </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      minHeight: 40,
-                    }}
-                  >
-                    {community.description}
-                  </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        minHeight: 40,
+                      }}
+                    >
+                      Community on Socius
+                    </Typography>
 
-                  <Button
-                    size="small"
-                    variant="contained"
-                    sx={{
-                      mt: 1,
-                      borderRadius: 3,
-                      textTransform: "none",
-                    }}
-                  >
-                    View
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          ))}
+                    <Button
+                      size="small"
+                      variant="contained"
+                      sx={{
+                        mt: 1,
+                        borderRadius: 3,
+                        textTransform: "none",
+                      }}
+                    >
+                      View
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Typography color="text.secondary">
+              You haven't joined any communities yet.
+            </Typography>
+          )}
         </Box>
       </CardContent>
     </Card>
