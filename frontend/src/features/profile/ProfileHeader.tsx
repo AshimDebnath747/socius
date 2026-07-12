@@ -120,9 +120,19 @@ export default function ProfileHeader({
                     fileInputRef.current?.click();
                   }
                 }}
+                slotProps={{
+                  img: {
+                    style: {
+                      height: "100%",
+                      width: "100%",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                    },
+                  },
+                }}
                 sx={{
-                  width: 130,
-                  height: 130,
+                  width: 170,
+                  height: 170,
                   border: "5px solid white",
                   boxShadow: 4,
                   cursor: editMode ? "pointer" : "default",

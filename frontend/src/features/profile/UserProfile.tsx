@@ -6,10 +6,9 @@ import {
   Grid,
   Stack,
 } from "@mui/material";
-
+import AvatarCropDialog from "./AvatarCropDialog";
 import ProfileHeader from "./ProfileHeader";
 import StatsSection from "./StatsSection";
-// import ActivitySection from "./ActivitySection";
 import CommunitySection from "./CommunitySection";
 import { useEffect, useState } from "react";
 import {
@@ -20,16 +19,20 @@ import {
 import type { ProfileData } from "../../types/user";
 
 const UserProfile = () => {
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editMode, setEditMode] = useState<boolean>(false);
-  const [profile, setProfile] = useState<ProfileData | null>(null);
+
+  const [cropOpen, setCropOpen] = useState(false);
+  const [imageSrc, setImageSrc] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
-
     headline: "",
     bio: "",
     about: "",
@@ -38,18 +41,30 @@ const UserProfile = () => {
     skills: "",
   });
 
+  // =========================
+  // Avatar Selection
+  // =========================
+
   const handleSelectAvatar = (file: File) => {
-    setSelectedFile(file);
+    const reader = new FileReader();
 
-    const previewUrl = URL.createObjectURL(file);
+    reader.onload = () => {
+      setImageSrc(reader.result as string);
+      setCropOpen(true);
+    };
 
-    setPreview(previewUrl);
+    reader.readAsDataURL(file);
   };
+
+  // =========================
+  // Save Profile
+  // =========================
+
   const handleSaveProfile = async () => {
     try {
       setUploading(true);
 
-      const updatedProfile = await updateProfile({
+      let updatedUser = await updateProfile({
         ...formData,
         skills: formData.skills
           .split(",")
@@ -57,11 +72,8 @@ const UserProfile = () => {
           .filter(Boolean),
       });
 
-      let updatedUser = updatedProfile;
-
       if (selectedFile) {
         const avatarForm = new FormData();
-
         avatarForm.append("avatar", selectedFile);
 
         updatedUser = await uploadAvatar(avatarForm);
@@ -86,7 +98,7 @@ const UserProfile = () => {
         about: updatedUser.about || "",
         location: updatedUser.location || "",
         website: updatedUser.website || "",
-        skills: updatedUser.skills || [],
+        skills: updatedUser.skills?.join(", ") || "",
       });
 
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -96,7 +108,7 @@ const UserProfile = () => {
         JSON.stringify({
           ...storedUser,
           ...updatedUser,
-        }),
+        })
       );
 
       if (preview) {
@@ -112,12 +124,16 @@ const UserProfile = () => {
       setUploading(false);
     }
   };
+
+  // =========================
+  // Fetch Profile
+  // =========================
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await getUserProfile();
 
-        // res.data is your JSON response
         setProfile(res);
 
         setFormData({
@@ -127,7 +143,7 @@ const UserProfile = () => {
           about: res.user.about || "",
           location: res.user.location || "",
           website: res.user.website || "",
-          skills: res.user.skills || [],
+          skills: res.user.skills?.join(", ") || "",
         });
       } catch (err) {
         console.error(err);
@@ -138,6 +154,15 @@ const UserProfile = () => {
 
     fetchProfile();
   }, []);
+
+  // Cleanup preview URL
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   if (loading) {
     return (
@@ -153,11 +178,12 @@ const UserProfile = () => {
       </Box>
     );
   }
+
   if (!profile) return null;
+
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={3}>
-        {/* Left Column */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>
             <ProfileHeader
@@ -169,6 +195,7 @@ const UserProfile = () => {
               setFormData={setFormData}
               onSelectAvatar={handleSelectAvatar}
             />
+
             {editMode && (
               <Stack direction="row" spacing={2} justifyContent="flex-end">
                 <Button
@@ -178,9 +205,9 @@ const UserProfile = () => {
                       URL.revokeObjectURL(preview);
                     }
 
-                    setEditMode(false);
                     setPreview(null);
                     setSelectedFile(null);
+                    setEditMode(false);
 
                     setFormData({
                       name: profile.user.name || "",
@@ -208,17 +235,31 @@ const UserProfile = () => {
           </Stack>
         </Grid>
 
-        {/* Right Column */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={3}>
-            <StatsSection userStats={profile!.stats} />
-            {/* <ActivitySection /> */}
+            <StatsSection userStats={profile.stats} />
           </Stack>
         </Grid>
       </Grid>
+
       <Box mt={3}>
-        <CommunitySection communities={profile!.communities} />
+        <CommunitySection communities={profile.communities} />
       </Box>
+
+      <AvatarCropDialog
+        open={cropOpen}
+        image={imageSrc}
+        onClose={() => setCropOpen(false)}
+        onCrop={(file) => {
+          setSelectedFile(file);
+
+          const previewUrl = URL.createObjectURL(file);
+
+          setPreview(previewUrl);
+
+          setCropOpen(false);
+        }}
+      />
     </Container>
   );
 };
