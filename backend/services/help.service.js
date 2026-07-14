@@ -24,7 +24,8 @@ export const getHelpRequest = async (communityId, status) => {
         const query = `
         SELECT
             h.*,
-            u.name
+            u.name,
+            u.avatar
         FROM helprequest h
         JOIN users u
             ON h.created_by = u.id
@@ -62,7 +63,8 @@ export const getHelpRequestById = async (id) => {
     const query = `
     SELECT
         h.*,
-        u.name
+        u.name,
+        u.avatar
     FROM helprequest h
     JOIN users u
         ON h.created_by = u.id

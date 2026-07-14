@@ -1,11 +1,13 @@
-import { Box, Container, Typography } from "@mui/material";
-import PostCard from "../components/PostCard";
+import { Container, Tooltip, Box } from "@mui/material";
 import { useEffect, useState } from "react";
-import axios from 'axios';
 import type { Post, HelpRequestResponse } from "../types";
 import Loader from "../../../components/loader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../lib/axios";
+import FeedHeader from "../components/FeedHeader";
+import FeedSearchBar from "../components/FeedSearchBar";
+import CreateHelpFab from "../components/CreateHelpFab";
+import FeedList from "../components/FeedList";
 /* 🔹 Local type */
 // interface Post {
 //   id: string;
@@ -21,6 +23,7 @@ let CURRENT_USER_ID: string = ""
 const FeedPage = () => {
 
   const navigate = useNavigate()
+  const [search, setSearch] = useState<string>("");
   const [data, setData] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   useEffect(() => {
@@ -29,6 +32,7 @@ const FeedPage = () => {
         const API = import.meta.env.VITE_BACKEND_URL;
         const res = await api.get(`${API}/api/help-requests?status=open`);
         if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
+        console.log(res.data)
         const data = res.data.data
           .filter(
             ({ created_by }: HelpRequestResponse) => String(created_by) !== CURRENT_USER_ID
@@ -63,16 +67,24 @@ const FeedPage = () => {
     func();
   }, []);
   return (
-    <Container sx={{ py: 4, minHeight: '100vh' }}>
-      {loading && <Loader />}
-      <Typography variant="h4" fontWeight="bold" mb={3}>
-        global help request Feed!
-      </Typography>
-      {data.length == 0 ? <Box>You are all Caught Up!</Box> :
-        data.map((h => (
-          <PostCard key={h.id} post={h} onClick={() => navigate(`/help-request/${h.id}`)} />
-        )))}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
 
+      {/* <FeedHeader /> */}
+
+      <FeedSearchBar
+        value={search}
+        onChange={setSearch}
+        onFilterClick={() => { }}
+      />
+      {loading && <Loader />}
+      <FeedList
+        posts={data}
+        search={search}
+      />
+
+      <CreateHelpFab
+        onClick={() => navigate("/helprequest")}
+      />
     </Container>
   );
 };

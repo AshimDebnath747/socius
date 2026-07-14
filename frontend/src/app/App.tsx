@@ -11,7 +11,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import ChatPage from "../features/chat/ChatPage";
 import HelpRequestForm from "../features/helpRequest/HelpRequestForm";
-import PostPage from "../features/posts/components/HelpRequestPage";
+import PostPage from "../features/posts/pages/HelpRequestPage";
 import CommunityPage from "../features/communities/communityPage";
 import ExploreCommunities from "../features/communities/pages/explorecommunites";
 import axios from 'axios';
@@ -61,31 +61,31 @@ const App = () => {
 
     return () => socket.off("connect")
   }, [])
- useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const res = await axios.get(`${API}/api/auth/me`, {
-        withCredentials: true,
-      });
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get(`${API}/api/auth/me`, {
+          withCredentials: true,
+        });
 
-      if (res.data.success && res.data.data?.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(res.data.data.user)
-        );
-        setIsAuth(true);
-      } else {
+        if (res.data.success && res.data.data?.user) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify(res.data.data.user)
+          );
+          setIsAuth(true);
+        } else {
+          localStorage.removeItem("user");
+          setIsAuth(false);
+        }
+      } catch (err) {
         localStorage.removeItem("user");
         setIsAuth(false);
       }
-    } catch (err) {
-      localStorage.removeItem("user");
-      setIsAuth(false);
-    }
-  };
+    };
 
-  checkAuth();
-}, []);
+    checkAuth();
+  }, []);
 
   if (isAuth === null) {
     return <Loader />

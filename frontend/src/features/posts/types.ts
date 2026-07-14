@@ -6,7 +6,8 @@ export interface Post {
     urgency: string;
     preferredMode: string;
     createdBy: string;
-    name: string,
+    name: string;
+    avatar: string | null;
     createdAt: string;
     status: string;
     communityId: string | null;
@@ -21,6 +22,7 @@ export interface HelpRequestResponse {
     community_id: string | null;
     created_by: string;
     name: string;
+    avatar: string | null;
     created_at: string;
     status: string;
 }

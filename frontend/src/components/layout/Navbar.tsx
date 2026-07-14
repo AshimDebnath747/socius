@@ -34,10 +34,10 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
 
   //conditional redering for profile icon and logout button
 
-  const location = useLocation() 
+  const location = useLocation()
 
   const isProfilePage = location.pathname === "/profile"
- 
+
 
 
   const handleLogout = async () => {
@@ -61,7 +61,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
 
 
   };
-   const iconStyle = {
+  const iconStyle = {
     width: 46,
     height: 46,
     borderRadius: "12px",
@@ -96,101 +96,95 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
         {/* Logo */}
 
         <Typography
-  component={NavLink}
-  to="/"
-  variant="h5"
-  sx={{
-    flexGrow: 1,
-    fontWeight: 700,
-    color: "#2563EB",
-    textDecoration: "none",
-    letterSpacing: ".5px",
-  }}
->
-  Socious
-</Typography>
+          component={NavLink}
+          to="/"
+          variant="h5"
+          sx={{
+            flexGrow: 1,
+            fontWeight: 700,
+            color: "#2563EB",
+            textDecoration: "none",
+            letterSpacing: ".5px",
+          }}
+        >
+          Socious
+        </Typography>
 
         {/* Navigation */}
 
         <Box
-  sx={{
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  }}
->
-  <Tooltip title="Feed" arrow>
-    <IconButton component={NavLink} to="/feed" sx={iconStyle}>
-      <HomeRoundedIcon />
-    </IconButton>
-  </Tooltip>
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <Tooltip title="Feed" arrow>
+            <IconButton component={NavLink} to="/feed" sx={iconStyle}>
+              <HomeRoundedIcon />
+            </IconButton>
+          </Tooltip>
 
-  <Tooltip title="Help Request" arrow>
-    <IconButton component={NavLink} to="/helprequest" sx={iconStyle}>
-      <VolunteerActivismRoundedIcon />
-    </IconButton>
-  </Tooltip>
+          <Tooltip title="Chat" arrow>
+            <IconButton component={NavLink} to="/chat" sx={iconStyle}>
+              <ChatRoundedIcon />
+            </IconButton>
+          </Tooltip>
 
-  <Tooltip title="Chat" arrow>
-    <IconButton component={NavLink} to="/chat" sx={iconStyle}>
-      <ChatRoundedIcon />
-    </IconButton>
-  </Tooltip>
+          <Tooltip title="Community" arrow>
+            <IconButton component={NavLink} to="/create-community" sx={iconStyle}>
+              <GroupsRoundedIcon />
+            </IconButton>
+          </Tooltip>
 
-  <Tooltip title="Community" arrow>
-    <IconButton component={NavLink} to="/create-community" sx={iconStyle}>
-      <GroupsRoundedIcon />
-    </IconButton>
-  </Tooltip>
+          <Tooltip title="Explore Communities" arrow>
+            <IconButton component={NavLink} to="/explorecommunities" sx={iconStyle}>
+              <TravelExploreRoundedIcon />
+            </IconButton>
+          </Tooltip>
 
-  <Tooltip title="Explore Communities" arrow>
-    <IconButton component={NavLink} to="/explorecommunities" sx={iconStyle}>
-      <TravelExploreRoundedIcon />
-    </IconButton>
-  </Tooltip>
+          {checkAuth ? (
+            isProfilePage ? (
+              <Tooltip title="Logout" arrow>
+                <IconButton
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  sx={iconStyle}
+                >
+                  {loggingOut ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <LogoutRoundedIcon />
+                  )}
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Tooltip title="Profile" arrow>
+                <IconButton
+                  component={NavLink}
+                  to="/profile"
+                  sx={iconStyle}
+                >
+                  <PersonIcon />
+                </IconButton>
+              </Tooltip>
+            )
+          ) : (
+            <>
+              <Tooltip title="Login" arrow>
+                <IconButton component={NavLink} to="/login" sx={iconStyle}>
+                  <LoginRoundedIcon />
+                </IconButton>
+              </Tooltip>
 
-  {checkAuth ? (
-  isProfilePage ? (
-    <Tooltip title="Logout" arrow>
-      <IconButton
-        onClick={handleLogout}
-        disabled={loggingOut}
-        sx={iconStyle}
-      >
-        {loggingOut ? (
-          <CircularProgress size={20} />
-        ) : (
-          <LogoutRoundedIcon />
-        )}
-      </IconButton>
-    </Tooltip>
-  ) : (
-    <Tooltip title="Profile" arrow>
-      <IconButton
-        component={NavLink}
-        to="/profile"
-        sx={iconStyle}
-      >
-        <PersonIcon />
-      </IconButton>
-    </Tooltip>
-  )
-) : (
-    <>
-      <Tooltip title="Login" arrow>
-        <IconButton component={NavLink} to="/login" sx={iconStyle}>
-          <LoginRoundedIcon />
-        </IconButton>
-      </Tooltip>
-
-      <Tooltip title="Sign Up" arrow>
-        <IconButton component={NavLink} to="/register" sx={iconStyle}>
-          <PersonAddRoundedIcon />
-        </IconButton>
-      </Tooltip>
-    </>
-  )}
-</Box>
+              <Tooltip title="Sign Up" arrow>
+                <IconButton component={NavLink} to="/register" sx={iconStyle}>
+                  <PersonAddRoundedIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );

@@ -12,6 +12,7 @@ import {
     Typography,
 } from "@mui/material";
 import axios from 'axios';
+import ImageUpload from "./components/ImageUpload";
 type FormData = {
     title: string;
     description: string;
@@ -154,7 +155,7 @@ export default function CreateHelpRequestForm() {
                         onChange={handleChange}
                         fullWidth
                     />
-
+                    <ImageUpload />
                     <Button type="submit" variant="contained" size="large">
                         Create Request
                     </Button>
