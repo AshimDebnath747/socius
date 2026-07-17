@@ -1,162 +1,189 @@
-import { pool } from '../config/db.js';
-import { slugify } from '../utils/slugify.js';
+import { pool } from "../config/db.js";
+import { slugify } from "../utils/slugify.js";
 
 async function generateUniqueSlug(name) {
-    const baseSlug = slugify(name);
-    let slug = baseSlug;
-    let counter = 1;
+  const baseSlug = slugify(name);
+  let slug = baseSlug;
+  let counter = 1;
 
-    while (true) {
-        const { rowCount } = await pool.query(
-            "SELECT 1 FROM community WHERE slug = $1",
-            [slug]
-        );
+  while (true) {
+    const { rowCount } = await pool.query(
+      "SELECT 1 FROM community WHERE slug = $1",
+      [slug],
+    );
 
-        if (rowCount === 0) break;
-        slug = `${baseSlug}-${counter++}`;
-    }
+    if (rowCount === 0) break;
+    slug = `${baseSlug}-${counter++}`;
+  }
 
-    return slug;
+  return slug;
 }
 
+export const createCommunity = async (
+  name,
+  description,
+  rules,
+  is_private,
+  userid,
+  time,
+  avatar
+) => {
+  const slug = await generateUniqueSlug(name);
+  const query = `INSERT INTO community (name ,slug , description , rules , is_private, avatar) VALUES ($1 , $2 , $3 , $4 ,$5, $6) RETURNING id`;
 
-export const createCommunity = async (name, description, rules, is_private, userid, time) => {
-    const slug = await generateUniqueSlug(name)
-    const query = `INSERT INTO community (name ,slug , description , rules , is_private) VALUES ($1 , $2 , $3 , $4 ,$5) RETURNING id`;
-
-    const { rows: rows } = await pool.query(query, [name, slug, description, rules, is_private]);
-    const communityId = rows[0].id
-    const query2 = `INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING id`;
-    const { rows: rows2 } = await pool.query(query2, [communityId, userid, "owner", time]);
-    return rows2[0];
-
-}
+  const { rows: rows } = await pool.query(query, [
+    name,
+    slug,
+    description,
+    rules,
+    is_private,
+    avatar
+  ]);
+  const communityId = rows[0].id;
+  const query2 = `INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING id`;
+  const { rows: rows2 } = await pool.query(query2, [
+    communityId,
+    userid,
+    "owner",
+    time,
+  ]);
+  return rows2[0];
+};
 
 export const getCommunities = async (userId) => {
-    const query = `
+  const query = `
     SELECT c.*
 FROM community c
 INNER JOIN communitymember cm
 ON c.id = cm.community_id
-WHERE cm.user_id = $1;`
-    const { rows } = await pool.query(query, [userId])
-    return rows
-}
+WHERE cm.user_id = $1;`;
+  const { rows } = await pool.query(query, [userId]);
+  return rows;
+};
 
 export const getCommunityBySlugService = async (slug) => {
-    const query = 'SELECT * FROM community WHERE slug=$1';
-    const { rows } = await pool.query(query, [slug])
-    if (!rows[0]) {
-        throw new Error("no such community id!")
-
-    }
-    return rows[0]
-}
+  const query = "SELECT * FROM community WHERE slug=$1";
+  const { rows } = await pool.query(query, [slug]);
+  if (!rows[0]) {
+    throw new Error("no such community id!");
+  }
+  return rows[0];
+};
 
 export const joinCommunity = async (communityId, userId, time) => {
+  const query1 =
+    "SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2";
+  const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
+  console.log("join", rows1);
+  if (rows1[0]) {
+    throw new Error("this user is already in this community");
+  }
 
-    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
-    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
-    console.log("join", rows1)
-    if (rows1[0]) {
-        throw new Error("this user is already in this community")
-    }
+  const query2 = "SELECT * FROM community WHERE id = $1";
+  const { rows: rows2 } = await pool.query(query2, [communityId]);
+  if (!rows2[0]) {
+    throw new Error("this community does not exist");
+  }
 
-    const query2 = 'SELECT * FROM community WHERE id = $1';
-    const { rows: rows2 } = await pool.query(query2, [communityId])
-    if (!rows2[0]) {
-        throw new Error("this community does not exist")
-    }
+  const query3 = "SELECT * FROM users WHERE id = $1";
+  const { rows: rows3 } = await pool.query(query3, [userId]);
+  if (!rows3[0]) {
+    throw new Error("this user does not exist");
+  }
 
-    const query3 = 'SELECT * FROM users WHERE id = $1';
-    const { rows: rows3 } = await pool.query(query3, [userId])
-    if (!rows3[0]) {
-        throw new Error("this user does not exist")
-    }
-
-
-    const query = 'INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING *';
-    const { rows } = await pool.query(query, [communityId, userId, "member", time])
-    return rows
-}
+  const query =
+    "INSERT INTO communitymember (community_id , user_id , role , joined_at) VALUES ($1 , $2 , $3 , $4) RETURNING *";
+  const { rows } = await pool.query(query, [
+    communityId,
+    userId,
+    "member",
+    time,
+  ]);
+  return rows;
+};
 
 export const leaveCommunity = async (communityId, userId) => {
-    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
-    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
+  const query1 =
+    "SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2";
+  const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
 
-    if (!rows1[0]) {
-        throw new Error("this user does not exist in this community")
-    }
-    const query = 'DELETE FROM communitymember where community_id = $1 and user_id = $2';
-    const { rows } = await pool.query(query, [communityId, userId])
-    return rows
-}
+  if (!rows1[0]) {
+    throw new Error("this user does not exist in this community");
+  }
+  const query =
+    "DELETE FROM communitymember where community_id = $1 and user_id = $2";
+  const { rows } = await pool.query(query, [communityId, userId]);
+  return rows;
+};
 
 export const getAllCommunityMembers = async (communityId) => {
-    const query1 = 'SELECT id from community where id = $1';
+  const query1 = "SELECT id from community where id = $1";
 
-    const { rows: rows1 } = await pool.query(query1, [communityId])
+  const { rows: rows1 } = await pool.query(query1, [communityId]);
 
-    if (!rows1[0]) {
-        throw new Error("There is no such community!")
-    }
+  if (!rows1[0]) {
+    throw new Error("There is no such community!");
+  }
 
-    const query = 'SELECT u.id , u.name , u.email , cm.role , cm.joined_at FROM communitymember cm JOIN users u ON u.id = cm.user_id WHERE cm.community_id = $1'
+  const query =
+    "SELECT u.id , u.name , u.email , cm.role , cm.joined_at FROM communitymember cm JOIN users u ON u.id = cm.user_id WHERE cm.community_id = $1";
 
-    const { rows } = await pool.query(query, [communityId])
+  const { rows } = await pool.query(query, [communityId]);
 
-    console.log(rows)
-    return rows
-}
+  console.log(rows);
+  return rows;
+};
 
 export const changeRole = async (AdminId, role, communityId, userId) => {
+  if (!["member", "moderator"].includes(role)) {
+    throw new Error("role not valid!");
+  }
+  const query1 =
+    "SELECT role FROM communitymember WHERE community_id = $1 and user_id = $2";
 
-    if (!['member', 'moderator'].includes(role)) {
-        throw new Error("role not valid!")
-    }
-    const query1 = 'SELECT role FROM communitymember WHERE community_id = $1 and user_id = $2'
+  const { rows: rows1 } = await pool.query(query1, [communityId, AdminId]);
 
-    const { rows: rows1 } = await pool.query(query1, [communityId, AdminId])
+  if (!rows1[0]) {
+    throw new Error("Bro you do not belong to this community!");
+  }
+  console.log(rows1[0]);
+  if (rows1[0].role === "member") {
+    throw new Error("Bro you can not change role in this community!");
+  }
+  const query2 =
+    "SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2";
+  const { rows: rows2 } = await pool.query(query2, [communityId, userId]);
 
-    if (!rows1[0]) {
-        throw new Error("Bro you do not belong to this community!")
-    }
-    console.log(rows1[0])
-    if (rows1[0].role === 'member') {
-        throw new Error("Bro you can not change role in this community!")
-    }
-    const query2 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2'
-    const { rows: rows2 } = await pool.query(query2, [communityId, userId])
+  if (!rows2[0]) {
+    throw new Error("This user does not exist in this community!");
+  }
 
-    if (!rows2[0]) {
-        throw new Error("This user does not exist in this community!")
-    }
-
-    if (rows2[0].role == "owner") {
-        throw new Error("you can not change this user's role!")
-    }
-    const rowId = rows2[0].id
-    const query = 'UPDATE communitymember SET role = $1 WHERE id = $2 RETURNING *';
-    const { rows } = await pool.query(query, [role, rowId])
-    console.log(rows)
-    return rows
-}
+  if (rows2[0].role == "owner") {
+    throw new Error("you can not change this user's role!");
+  }
+  const rowId = rows2[0].id;
+  const query =
+    "UPDATE communitymember SET role = $1 WHERE id = $2 RETURNING *";
+  const { rows } = await pool.query(query, [role, rowId]);
+  console.log(rows);
+  return rows;
+};
 
 export const getComminityMessagesService = async (communityId, userId) => {
-    const query1 = `
+  const query1 = `
         SELECT 1
         FROM communitymember
         WHERE community_id = $1
           AND user_id = $2
     `;
 
-    const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
+  const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
 
-    if (!rows1.length) {
-        throw new Error("Unauthorized user!");
-    }
+  if (!rows1.length) {
+    throw new Error("Unauthorized user!");
+  }
 
-    const query2 = `
+  const query2 = `
         SELECT
             m.*,
             u.name,
@@ -185,96 +212,94 @@ export const getComminityMessagesService = async (communityId, userId) => {
         ORDER BY m.created_at ASC;
     `;
 
-    const { rows } = await pool.query(query2, [communityId]);
+  const { rows } = await pool.query(query2, [communityId]);
 
-    return rows;
+  return rows;
 };
 
 export const getAllCommunitiesService = async () => {
-    const query = 'SELECT * FROM community';
-    const { rows } = await pool.query(query)
-    if (!rows[0]) {
-        throw new Error("No communities found Bro!")
-    }
-    return rows
-}
+  const query = "SELECT * FROM community";
+  const { rows } = await pool.query(query);
+  if (!rows[0]) {
+    throw new Error("No communities found Bro!");
+  }
+  return rows;
+};
 
 export const joinRequestService = async (communityId, userId) => {
-    const community = await pool.query(
-        `SELECT id, is_private
+  const community = await pool.query(
+    `SELECT id, is_private
      FROM community
      WHERE id = $1`,
-        [communityId]
+    [communityId],
+  );
+
+  if (community.rowCount === 0) {
+    throw new Error("Community not found.");
+  }
+
+  if (!community.rows[0].is_private) {
+    throw new Error(
+      "This is a public community. Use the join endpoint instead.",
     );
+  }
 
-    if (community.rowCount === 0) {
-        throw new Error("Community not found.");
-    }
-
-    if (!community.rows[0].is_private) {
-        throw new Error(
-            "This is a public community. Use the join endpoint instead."
-        );
-    }
-
-    // Already a member?
-    const member = await pool.query(
-        `SELECT 1
+  // Already a member?
+  const member = await pool.query(
+    `SELECT 1
      FROM communitymember
      WHERE community_id = $1
      AND user_id = $2`,
-        [communityId, userId]
-    );
+    [communityId, userId],
+  );
 
-    if (member.rowCount) {
-        throw new Error("You are already a member.");
-    }
+  if (member.rowCount) {
+    throw new Error("You are already a member.");
+  }
 
-    // Existing pending request?
-    const request = await pool.query(
-        `SELECT status
+  // Existing pending request?
+  const request = await pool.query(
+    `SELECT status
      FROM community_join_requests
      WHERE community_id = $1
      AND user_id = $2 AND status='pending'`,
-        [communityId, userId]
-    );
+    [communityId, userId],
+  );
 
-    if (request.rowCount) {
-        throw new Error("You already have a pending request.");
-    }
+  if (request.rowCount) {
+    throw new Error("You already have a pending request.");
+  }
 
-    // Create request
-    const response = await pool.query(
-        `INSERT INTO community_join_requests
+  // Create request
+  const response = await pool.query(
+    `INSERT INTO community_join_requests
         (community_id, user_id)
      VALUES ($1, $2) RETURNING *`,
-        [communityId, userId]
-    );
+    [communityId, userId],
+  );
 
-    return response.rows
-}
+  return response.rows;
+};
 
 export const getCommunityJoinRequestsService = async (communityId, userId) => {
-    const permission = await pool.query(
-        `
+  const permission = await pool.query(
+    `
     SELECT role
     FROM communitymember
     WHERE community_id = $1
       AND user_id = $2
       AND role IN ('owner', 'moderator')
     `,
-        [communityId, userId]
-    );
+    [communityId, userId],
+  );
 
-    if (permission.rowCount === 0) {
-        throw new Error(
-            "You are not authorized to view join requests."
-        );
-    }
+  if (permission.rowCount === 0) {
+    throw new Error("You are not authorized to view join requests.");
+  }
 
-    // Fetch pending join requests
-    const result = await pool.query(
-        `
+  // Fetch pending join requests
+  const result = await pool.query(
+    `
     SELECT
       cjr.id,
       cjr.community_id,
@@ -296,73 +321,77 @@ export const getCommunityJoinRequestsService = async (communityId, userId) => {
 
     ORDER BY cjr.created_at ASC
     `,
-        [communityId]
-    );
+    [communityId],
+  );
 
-    return result.rows;
-}
+  return result.rows;
+};
 
-export const acceptJoinRequestService = async (communityId, requestId, currentUserId) => {
-    const client = await pool.connect();
+export const acceptJoinRequestService = async (
+  communityId,
+  requestId,
+  currentUserId,
+) => {
+  const client = await pool.connect();
 
-    try {
-        await client.query("BEGIN");
+  try {
+    await client.query("BEGIN");
 
-        // Verify owner/moderator permissions
-        const permission = await client.query(
-            `
+    // Verify owner/moderator permissions
+    const permission = await client.query(
+      `
       SELECT role
       FROM communitymember
       WHERE community_id = $1
         AND user_id = $2
         AND role IN ('owner', 'moderator')
       `,
-            [communityId, currentUserId]
-        );
+      [communityId, currentUserId],
+    );
 
-        if (permission.rowCount === 0) {
-            throw new Error("You are not authorized to accept join requests.");
-        }
+    if (permission.rowCount === 0) {
+      throw new Error("You are not authorized to accept join requests.");
+    }
 
-        // Get the pending join request
-        const request = await client.query(
-            `
+    // Get the pending join request
+    const request = await client.query(
+      `
       SELECT community_id, user_id, status
       FROM community_join_requests
       WHERE id = $1
         AND community_id = $2
       `,
-            [requestId, communityId]
-        );
+      [requestId, communityId],
+    );
 
-        if (request.rowCount === 0) {
-            throw new Error("Join request not found.");
-        }
+    if (request.rowCount === 0) {
+      throw new Error("Join request not found.");
+    }
 
-        const joinRequest = request.rows[0];
+    const joinRequest = request.rows[0];
 
-        if (joinRequest.status !== "pending") {
-            throw new Error("This request has already been processed.");
-        }
+    if (joinRequest.status !== "pending") {
+      throw new Error("This request has already been processed.");
+    }
 
-        // Check if already a member
-        const member = await client.query(
-            `
+    // Check if already a member
+    const member = await client.query(
+      `
       SELECT 1
       FROM communitymember
       WHERE community_id = $1
         AND user_id = $2
       `,
-            [communityId, joinRequest.user_id]
-        );
+      [communityId, joinRequest.user_id],
+    );
 
-        if (member.rowCount > 0) {
-            throw new Error("User is already a member.");
-        }
+    if (member.rowCount > 0) {
+      throw new Error("User is already a member.");
+    }
 
-        // Add member
-        await client.query(
-            `
+    // Add member
+    await client.query(
+      `
       INSERT INTO communitymember
       (
         community_id,
@@ -371,136 +400,140 @@ export const acceptJoinRequestService = async (communityId, requestId, currentUs
       )
       VALUES ($1, $2, 'member')
       `,
-            [communityId, joinRequest.user_id]
-        );
+      [communityId, joinRequest.user_id],
+    );
 
-        // Mark request as accepted
-        await client.query(
-            `
+    // Mark request as accepted
+    await client.query(
+      `
       UPDATE community_join_requests
       SET status = 'accepted'
       WHERE id = $1
       `,
-            [requestId]
-        );
+      [requestId],
+    );
 
-        await client.query("COMMIT");
+    await client.query("COMMIT");
 
-        return {
-            success: true,
-            message: "Join request accepted successfully.",
-        };
-    } catch (err) {
-        await client.query("ROLLBACK");
-        throw err;
-    } finally {
-        client.release();
-    }
+    return {
+      success: true,
+      message: "Join request accepted successfully.",
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
-export const rejectJoinRequestService = async (communityId, requestId, currentUserId) => {
-    const client = await pool.connect();
+export const rejectJoinRequestService = async (
+  communityId,
+  requestId,
+  currentUserId,
+) => {
+  const client = await pool.connect();
 
-    try {
-        await client.query("BEGIN");
+  try {
+    await client.query("BEGIN");
 
-        // Verify owner/moderator permissions
-        const permission = await client.query(
-            `
+    // Verify owner/moderator permissions
+    const permission = await client.query(
+      `
       SELECT role
       FROM communitymember
       WHERE community_id = $1
         AND user_id = $2
         AND role IN ('owner', 'moderator')
       `,
-            [communityId, currentUserId]
-        );
+      [communityId, currentUserId],
+    );
 
-        if (permission.rowCount === 0) {
-            throw new Error("You are not authorized to reject join requests.");
-        }
+    if (permission.rowCount === 0) {
+      throw new Error("You are not authorized to reject join requests.");
+    }
 
-        // Verify the request exists
-        const request = await client.query(
-            `
+    // Verify the request exists
+    const request = await client.query(
+      `
       SELECT status
       FROM community_join_requests
       WHERE id = $1
         AND community_id = $2
       `,
-            [requestId, communityId]
-        );
+      [requestId, communityId],
+    );
 
-        if (request.rowCount === 0) {
-            throw new Error("Join request not found.");
-        }
+    if (request.rowCount === 0) {
+      throw new Error("Join request not found.");
+    }
 
-        if (request.rows[0].status !== "pending") {
-            throw new Error("This request has already been processed.");
-        }
+    if (request.rows[0].status !== "pending") {
+      throw new Error("This request has already been processed.");
+    }
 
-        // Mark as rejected
-        await client.query(
-            `
+    // Mark as rejected
+    await client.query(
+      `
       UPDATE community_join_requests
       SET status = 'rejected'
       WHERE id = $1
       `,
-            [requestId]
-        );
+      [requestId],
+    );
 
-        await client.query("COMMIT");
+    await client.query("COMMIT");
 
-        return {
-            success: true,
-            message: "Join request rejected successfully.",
-        };
-    } catch (err) {
-        await client.query("ROLLBACK");
-        throw err;
-    } finally {
-        client.release();
-    }
+    return {
+      success: true,
+      message: "Join request rejected successfully.",
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 export const getJoinRequestStatusService = async (communityId, userId) => {
-    const result = await pool.query(
-        `
+  const result = await pool.query(
+    `
         SELECT status
         FROM community_join_requests
         WHERE community_id = $1
           AND user_id = $2
         `,
-        [communityId, userId]
-    );
-    console.log("req status :", result)
-    if (result.rowCount === 0) {
-        return {
-            requested: false,
-            status: null,
-        };
-    }
+    [communityId, userId],
+  );
+  console.log("req status :", result);
+  if (result.rowCount === 0) {
     return {
-        requested: true,
-        status: result.rows[0].status,
+      requested: false,
+      status: null,
     };
+  }
+  return {
+    requested: true,
+    status: result.rows[0].status,
+  };
 };
 
 export const checkMembershipService = async (communityId, userId) => {
-    const result = await pool.query(
-        `
+  const result = await pool.query(
+    `
         SELECT role
         FROM communitymember
         WHERE community_id = $1
           AND user_id = $2
         LIMIT 1
         `,
-        [communityId, userId]
-    );
+    [communityId, userId],
+  );
 
-    if (result.rows.length === 0) {
-        return null;
-    }
+  if (result.rows.length === 0) {
+    return null;
+  }
 
-    return result.rows[0];
-}
+  return result.rows[0];
+};

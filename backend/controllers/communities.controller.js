@@ -4,9 +4,10 @@ export const createCommunityController = async (req, res) => {
 
     try {
         const userid = req.user.id
+        const avatar = `/uploads/communities/${req.file.filename}`;
         const time = new Date();
         const { name, description, rules, is_private } = req.body
-        const result = await createCommunity(name, description, rules, is_private, userid, time)
+        const result = await createCommunity(name, description, rules, is_private, userid, time,avatar)
 
         res.status(201).json({
             success: true,

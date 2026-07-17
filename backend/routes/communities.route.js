@@ -3,12 +3,13 @@ import { authMiddleware } from "../middlewares/auth.middleware.js"
 import { validate } from '../middlewares/validate.middleware.js';
 import { createCommunitySchema } from '../validators/communities.validator.js';
 import { createCommunityController, getCommunitiesController, getCommunityBySlugController, joinCommunityController, leaveCommunityController, getAllCommunityMembersController, changeRoleController, getComminityMessages, getAllCommunitiesController, joinRequestController, getCommunityJoinRequestsController, acceptJoinRequestController, rejectJoinRequestController, getJoinRequestStatus, checkMembershipController } from '../controllers/communities.controller.js';
+import { uploadCommunityAvatar } from '../middlewares/uploadCommunityAvatar.js';
 const router = express.Router()
 
 //middleware
 router.use(authMiddleware)
 //post requests:
-router.post("/", validate(createCommunitySchema), createCommunityController)
+router.post("/", uploadCommunityAvatar.single("avatar"),validate(createCommunitySchema), createCommunityController)
 router.post("/:id/join", joinCommunityController)
 router.post("/:id/join-request", joinRequestController)
 router.post("/:id/join-requests/:requestId/accept", acceptJoinRequestController)

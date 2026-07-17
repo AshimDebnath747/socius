@@ -15,7 +15,6 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import type { Community } from "../../../types/community";
 
-
 type CommunitySidebarProps = {
   communities: Community[];
   loading: boolean;
@@ -53,17 +52,11 @@ const CommunitySidebar = ({
           alignItems: "center",
         }}
       >
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-        >
+        <Typography variant="h5" fontWeight="bold">
           Communities
         </Typography>
 
-        <IconButton
-          color="primary"
-          onClick={onToggleCreateCommunity}
-        >
+        <IconButton color="primary" onClick={onToggleCreateCommunity}>
           {showCreate ? <CloseIcon /> : <AddIcon />}
         </IconButton>
       </Box>
@@ -94,8 +87,10 @@ const CommunitySidebar = ({
               onClick={() => onSelectCommunity(community)}
             >
               <ListItemAvatar>
-                <Avatar>
-                  {community.name.charAt(0).toUpperCase()}
+                <Avatar
+                  src={`${import.meta.env.VITE_BACKEND_URL}${community.avatar}`}
+                >
+                  {!community.avatar && community.name.charAt(0).toUpperCase()}
                 </Avatar>
               </ListItemAvatar>
 

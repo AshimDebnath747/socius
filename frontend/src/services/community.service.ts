@@ -8,7 +8,7 @@ export interface CreateCommunityPayload {
 }
 
 
-export const createCommunity = async (payload: CreateCommunityPayload) => {
+export const createCommunity = async (payload: FormData) => {
 
   const res = await api.post("api/communities", payload)
   return res.data
