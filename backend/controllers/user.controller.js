@@ -8,23 +8,23 @@ const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, "..", "uploads", "avatars");
 
 export const getUserByIdController = async (req, res) => {
-    const userId  = req.params.id ?? req.user.id
-    try {
-        const result = await getUserById(userId);
+  const userId = req.params.id ?? req.user.id
+  try {
+    const result = await getUserById(userId);
 
-        return res.status(201).json({
-            success: true,
-            message: "user fetched successfully",
-            data: result
-        })
-    } catch (err) {
-        console.log("message:", err.message)
-        return res.status(200).json({
-            success: false,
-            message: "user could not be fetched!",
-            data: err.message
-        })
-    }
+    return res.status(201).json({
+      success: true,
+      message: "user fetched successfully",
+      data: result
+    })
+  } catch (err) {
+    console.log("message:", err.message)
+    return res.status(200).json({
+      success: false,
+      message: "user could not be fetched!",
+      data: err.message
+    })
+  }
 }
 
 export const putUserController = async (req, res) => {
@@ -69,57 +69,61 @@ export const putUserController = async (req, res) => {
 
 export const getReviewsByIdController = async (req, res) => {
 
-    try {
-        const id = req.params.id
-        const { page, limit } = req.validatedQuery
+  try {
+    const id = req.params.id
+    const { page, limit } = req.validatedQuery
 
-        const result = await getReviewsById(id, page, limit)
-        return res.status(201).json({
-            success: true,
-            message: "user updated successfully",
-            data: result
-        })
+    const result = await getReviewsById(id, page, limit)
+    return res.status(201).json({
+      success: true,
+      message: "user updated successfully",
+      data: result
+    })
 
 
-    } catch (err) {
-        console.log("message:", err.message)
-        return res.status(200).json({
-            success: false,
-            message: "user could not be updated!",
-            data: err.message
-        })
-    }
+  } catch (err) {
+    console.log("message:", err.message)
+    return res.status(200).json({
+      success: false,
+      message: "user could not be updated!",
+      data: err.message
+    })
+  }
 }
 
 // Get user by id for next user to chat.
 
 export const getNextUserByIdController = async (req, res) => {
-    const { helper_id, requester_id } = req.body;
-    const currentUserId = req.user?.id;
+  const helperId = req.query.helperid
+  const requesterId = req.query.requesterid
+  const currentUserId = req.user?.id;
 
-    if (helper_id == null || requester_id == null) {
-        return res.status(400).json({
-            success: false,
-            message: "helper_id and requester_id are required",
-        });
-    }
+  console.log("helper id", helperId)
+  console.log("requester id", requesterId)
 
-    try {
-        const result = await getNextUserById(helper_id, requester_id, currentUserId);
+  if (helperId == null || requesterId == null) {
+    return res.status(400).json({
+      success: false,
+      message: "helper_id and requester_id are required",
+    });
+  }
 
-        return res.status(200).json({
-            success: true,
-            message: "user fetched successfully",
-            data: result
-        });
-    } catch (err) {
-        console.log("message:", err.message);
-        return res.status(400).json({
-            success: false,
-            message: "user could not be fetched!",
-            data: err.message
-        });
-    }
+  try {
+    const result = await getNextUserById(helperId, requesterId, currentUserId);
+
+    return res.status(200).json({
+      success: true,
+      message: "user fetched successfully",
+      data: result
+    });
+  } catch (err) {
+    console.log("message:", err.message);
+    return res.status(400).json({
+      success: false,
+      message: "user could not be fetched!",
+      data: err.message
+    });
+  }
 }
 
 export const updateAvatarController = async (req, res, next) => {

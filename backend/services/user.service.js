@@ -178,7 +178,7 @@ export const getNextUserById = async (
     FROM users
     WHERE id = $1
   `;
-
+  console.log("current use id:", currentUserId)
   if (helper_id == null || requester_id == null || currentUserId == null) {
     throw new Error(
       "helper_id, requester_id, and current user id are required",
@@ -188,10 +188,10 @@ export const getNextUserById = async (
   let targetId;
   let role;
 
-  if (currentUserId === helper_id) {
+  if (currentUserId == helper_id) {
     targetId = requester_id;
     role = "requester";
-  } else if (currentUserId === requester_id) {
+  } else if (currentUserId == requester_id) {
     targetId = helper_id;
     role = "helper";
   } else {

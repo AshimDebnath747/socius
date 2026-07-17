@@ -11,10 +11,9 @@ import CommunitySidebar from "../communities/components/communitiesSidebar";
 import CreateCommunityPage from "../communities/components/CreateCommunityPage";
 import { io } from "socket.io-client";
 import { getAllCommunities } from "../../services/community.service";
-import type { Community } from "../../types/community";
-import type { Message } from "../chat/types";
+import type { Community, CommunityMessage } from "../../types/community";
 import axios from 'axios';
-import ChatWindow from "../chat/components/ChatWindow";
+import CommunityChatWindow from "./components/CommunityChatWindow";
 import MessageInput from "../chat/components/MessageInput";
 import ChatHeader from "../chat/components/ChatHeader";
 import CommunityDashboard from "./components/communityDashboard";
@@ -26,7 +25,7 @@ const user: string | null = localStorage.getItem("user")
 let CURRENT_USER_ID: string = ""
 if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
 const CommunityPage = () => {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<CommunityMessage[]>([])
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState<boolean>(true)
   const [selectedCommunity, setSelectedCommunity] =
@@ -58,18 +57,67 @@ const CommunityPage = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
 
+    const handleDelivered = ({
+      messageId,
+    }: {
+      messageId: number;
+    }) => {
+
+      setMessages(prev =>
+        prev.map(msg =>
+          String(msg.id) === String(messageId)
+            ? {
+              ...msg,
+              isDelivered: true,
+            }
+            : msg
+        )
+      );
+
+    };
+
+    socket.on(
+      "message-delivered",
+      handleDelivered
+    );
+
+    return () => {
+      socket.off(
+        "message-delivered",
+        handleDelivered
+      );
+    };
+
+  }, []);
+  // receive messages ->
+  useEffect(() => {
     const handleReceiveMessage = (msg: any) => {
-      //console.log(msg)
-      const message: Message = {
+      console.log("received msg :", msg)
+      // if (String(msg.community_id) !== String(selectedCommunity?.id)) {
+      //   return;
+      // }
+      const message: CommunityMessage = {
         id: String(msg.id),
-        sessionId: String(msg.session_id),
+        sessionId: msg.session_id ? String(msg.session_id) : null,
+        communityId: msg.community_id ? String(msg.community_id) : null,
         senderId: String(msg.sender_id),
         content: msg.content,
         createdAt: msg.created_at,
+        updatedAt: msg.updated_at,
+        name: msg.name,
+        avatar: msg.avatar,
+        email: msg.email,
+
+        isDelivered: msg.is_delivered,
+        isRead: msg.is_read
       };
 
+      socket.emit("message-delivered", {
+        messageId: msg.id,
+      });
       setMessages((prev) => [...prev, message]);
     };
     socket.on("receive-message", handleReceiveMessage);
@@ -77,24 +125,32 @@ const CommunityPage = () => {
       socket.off("receive-message", handleReceiveMessage);
     };
   }, []);
-
+  //get community messagges!
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         if (!selectedCommunity) return;
-        console.log("selected session:", selectedCommunity.id)
+        console.log("selected community:", selectedCommunity.id)
 
         const msg = await axios.get(`${API}/api/communities/${selectedCommunity.id}/messages`, {
           withCredentials: true
         });
 
         console.log(msg.data)
-        const messages: Message[] = msg.data?.data?.map((msg: any) => ({
+        const messages: CommunityMessage[] = msg.data?.data?.map((msg: any) => ({
           id: String(msg.id),
-          sessionId: String(msg.session_id),
+          sessionId: msg.session_id ? String(msg.session_id) : null,
+          communityId: msg.community_id ? String(msg.community_id) : null,
           senderId: String(msg.sender_id),
           content: msg.content,
           createdAt: msg.created_at,
+          updatedAt: msg.updated_at,
+          name: msg.name,
+          avatar: msg.avatar,
+          email: msg.email,
+
+          isDelivered: msg.is_delivered,
+          isRead: msg.is_read
         }));
         setMessages(messages);
         socket.emit("join-community", selectedCommunity.id);
@@ -184,7 +240,7 @@ const CommunityPage = () => {
             {showDashboard ? (
               <CommunityDashboard community={selectedCommunity} onBack={() => setShowDashboard(false)} />
             ) : (
-              <ChatWindow
+              <CommunityChatWindow
                 messages={messages}
                 loading={loading}
                 currentUserId={CURRENT_USER_ID}

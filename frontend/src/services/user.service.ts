@@ -2,12 +2,14 @@
 import api from "../lib/axios";
 
 export const getNextUserById = async (
-  helper_id: number,
-  requester_id: number
+  helperid: number,
+  requesterid: number
 ) => {
-  const res = await api.post("/api/user/next", {
-    helper_id,
-    requester_id,
+  const res = await api.get("/api/user/next", {
+    params: {
+      helperid,
+      requesterid,
+    },
   });
 
   return res.data.data;

@@ -8,10 +8,10 @@ import {
     chatRadii,
 } from "../../chat/theme/chatTheme";
 
-import type { Message } from "../types";
+import { type CommunityMessage } from "../../../types/community";
 
 interface Props {
-    message: Message;
+    message: CommunityMessage;
     isOwn: boolean;
     isLastInGroup: boolean;
     showTimestamp: boolean;
@@ -110,44 +110,6 @@ export default function CommunityChatBubble({
                     {message.content}
                 </Typography>
 
-                {(message.isEdited || isOwn) && (
-                    <Stack
-                        direction="row"
-                        spacing={0.5}
-                        justifyContent="flex-end"
-                        alignItems="center"
-                        mt={0.5}
-                    >
-                        {message.isEdited && (
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    fontSize: 10,
-                                    opacity: 0.8,
-                                }}
-                            >
-                                edited
-                            </Typography>
-                        )}
-
-                        {isOwn &&
-                            (message.isRead ? (
-                                <DoneAllIcon
-                                    sx={{
-                                        fontSize: 14,
-                                        color: "#90CAF9",
-                                    }}
-                                />
-                            ) : (
-                                <DoneIcon
-                                    sx={{
-                                        fontSize: 14,
-                                        opacity: 0.8,
-                                    }}
-                                />
-                            ))}
-                    </Stack>
-                )}
             </Box>
 
             {showTimestamp && (
@@ -163,6 +125,23 @@ export default function CommunityChatBubble({
                     {getDateTimeLabel(message.createdAt)}
                 </Typography>
             )}
+
+            {isOwn &&
+                (message.isDelivered ? (
+                    <DoneAllIcon
+                        sx={{
+                            fontSize: 16,
+                            color: "gray",
+                        }}
+                    />
+                ) : (
+                    <DoneIcon
+                        sx={{
+                            fontSize: 16,
+                            color: "gray",
+                        }}
+                    />
+                ))}
         </Box>
     );
 }

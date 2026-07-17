@@ -3,6 +3,9 @@ export interface Message {
     sessionId: string;
     senderId: string;
     content: string;
+    isRead: boolean;
+    isEdited: boolean;
+    isDeleted: boolean;
     createdAt: string; // ISO timestamp
 }
 

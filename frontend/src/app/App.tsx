@@ -31,16 +31,57 @@ const App = () => {
 
   const [notification, setNotification] = useState<{
     open: boolean;
+    type: "session" | "community" | null;
     sessionId: number | null;
+    communityId: number | null;
+    message: string;
   }>({
     open: false,
+    type: null,
     sessionId: null,
+    communityId: null,
+    message: "",
   });
+
+  useEffect(() => {
+    const handleCommunityNotification = (data: {
+      messageId: number;
+      communityId: number;
+      communityName: string;
+      senderName: string;
+    }) => {
+
+      setNotification({
+        open: true,
+        type: "community",
+        sessionId: null,
+        communityId: data.communityId,
+        message: `${data.senderName} sent a message in ${data.communityName}`,
+      });
+
+      // Acknowledge delivery of the notification
+      socket.emit("message-delivered", {
+        messageId: data.messageId,
+      });
+    };
+
+    socket.on("community-notification", handleCommunityNotification);
+
+    return () => {
+      socket.off(
+        "community-notification",
+        handleCommunityNotification
+      );
+    };
+  }, []);
   useEffect(() => {
     const handleNewChat = (data: { sessionId: number }) => {
       setNotification({
         open: true,
+        type: "session",
         sessionId: data.sessionId,
+        communityId: null,
+        message: "Your help request was accepted!",
       });
     };
 
@@ -124,11 +165,11 @@ const App = () => {
                 }
               }}
             >
-              OPEN
+              {notification.message}
             </Button>
           }
         >
-          Your help request has been accepted!
+          {notification.type}
         </Alert>
       </Snackbar>
       <Navbar

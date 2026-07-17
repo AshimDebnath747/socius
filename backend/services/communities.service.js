@@ -143,17 +143,52 @@ export const changeRole = async (AdminId, role, communityId, userId) => {
 }
 
 export const getComminityMessagesService = async (communityId, userId) => {
-    const query1 = 'SELECT * FROM communitymember WHERE community_id = $1 and user_id = $2';
-    const { rows: rows1 } = await pool.query(query1, [communityId, userId])
-    if (!rows1[0]) {
-        throw new Error("unauthorized user!")
+    const query1 = `
+        SELECT 1
+        FROM communitymember
+        WHERE community_id = $1
+          AND user_id = $2
+    `;
+
+    const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
+
+    if (!rows1.length) {
+        throw new Error("Unauthorized user!");
     }
 
-    const query2 = 'SELECT * FROM messages WHERE community_id = $1 ORDER BY created_at ASC';
-    const { rows: rows2 } = await pool.query(query2, [communityId])
-    console.log("message in ", communityId, ":", rows2)
-    return rows2
-}
+    const query2 = `
+        SELECT
+            m.*,
+            u.name,
+            u.avatar,
+            u.email,
+
+            (
+                SELECT COUNT(*) = COUNT(delivered_at)
+                FROM message_status ms
+                WHERE ms.message_id = m.id
+            ) AS is_delivered,
+
+            (
+                SELECT COUNT(*) = COUNT(read_at)
+                FROM message_status ms
+                WHERE ms.message_id = m.id
+            ) AS is_read
+
+        FROM messages m
+
+        JOIN users u
+            ON u.id = m.sender_id
+
+        WHERE m.community_id = $1
+
+        ORDER BY m.created_at ASC;
+    `;
+
+    const { rows } = await pool.query(query2, [communityId]);
+
+    return rows;
+};
 
 export const getAllCommunitiesService = async () => {
     const query = 'SELECT * FROM community';
