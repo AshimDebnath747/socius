@@ -29,6 +29,28 @@ const ChatPage = () => {
 
     const loading = false;
 
+
+    useEffect(() => {
+        const handleDelivered = ({ messageId }: { messageId: string }) => {
+            setMessages(prev =>
+                prev.map(m =>
+                    m.id === messageId
+                        ? {
+                            ...m,
+                            deliveredAt: new Date().toISOString(),
+                        }
+                        : m
+                )
+            );
+        };
+
+        socket.on("message-delivered", handleDelivered);
+
+        return () => {
+            socket.off("message-delivered", handleDelivered);
+        };
+    }, []);
+
     useEffect(() => {
 
         const handleReceiveMessage = (msg: any) => {
@@ -43,6 +65,9 @@ const ChatPage = () => {
             console.log(typeof message.createdAt);
             // console.log(message.createdAt instanceof Date);
             setMessages((prev) => [...prev, message]);
+            socket.emit("message-delivered", {
+                messageId: message.id,
+            });
         };
         socket.on("receive-message", handleReceiveMessage);
         return () => {
@@ -68,6 +93,9 @@ const ChatPage = () => {
                     senderId: String(msg.sender_id),
                     content: msg.content,
                     createdAt: msg.created_at,
+                    isRead: msg.is_read,
+                    isEdited: msg.is_edited,
+                    isDeleted: msg.is_deleted,
                 }));
 
                 setMessages(messages);
@@ -136,7 +164,7 @@ const ChatPage = () => {
                                 if (!selectedSession) return;
 
                                 socket.emit("send-message", {
-                                    type: "personal",
+                                    type: "session",
                                     sessionId: selectedSession.id,
                                     content,
                                 });

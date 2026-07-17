@@ -1,6 +1,7 @@
 import { verifySocketAuth } from "./middleware.js";
 import { registerMessageEvents } from "./message.socket.js";
 import { registerSessionEvents } from "./session.socket.js";
+import { onlineUsers } from "./manageOnline.js";
 let _io
 export const initSocket = (io) => {
     _io = io
@@ -8,17 +9,35 @@ export const initSocket = (io) => {
     io.use(verifySocketAuth);
 
     io.on("connection", (socket) => {
-        console.log("User connected:", socket.user.id);
+
+        const userId = socket.user.id;
+
+        // Track this socket
+        if (!onlineUsers.has(userId)) {
+            onlineUsers.set(userId, new Set());
+        }
+
+        onlineUsers.get(userId).add(socket.id);
+        console.log("User connected:", userId);
 
         // Join personal room
-        socket.join(`user-${socket.user.id}`);
+        socket.join(`user-${userId}`);
 
         // Register feature modules
         registerMessageEvents(io, socket);
         registerSessionEvents(io, socket);
 
         socket.on("disconnect", () => {
-            console.log("User disconnected:", socket.user.id);
+            const sockets = onlineUsers.get(userId);
+
+            if (sockets) {
+                sockets.delete(socket.id);
+
+                if (sockets.size === 0) {
+                    onlineUsers.delete(userId);
+                }
+            }
+            console.log("User disconnected:", userId);
         });
     });
 
