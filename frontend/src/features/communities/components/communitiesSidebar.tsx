@@ -1,6 +1,7 @@
 import {
   Avatar,
   Box,
+  CircularProgress,
   IconButton,
   List,
   ListItemAvatar,
@@ -17,6 +18,7 @@ import type { Community } from "../../../types/community";
 
 type CommunitySidebarProps = {
   communities: Community[];
+  loading: boolean;
   showCreate: boolean;
   onSelectCommunity: (community: Community) => void;
   onToggleCreateCommunity: () => void;
@@ -24,6 +26,7 @@ type CommunitySidebarProps = {
 
 const CommunitySidebar = ({
   communities,
+  loading,
   showCreate,
   onSelectCommunity,
   onToggleCreateCommunity,
@@ -66,31 +69,44 @@ const CommunitySidebar = ({
       </Box>
 
       {/* Community List */}
-      <List
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-        }}
-      >
-        {communities.map((community) => (
-          <ListItemButton
-            key={community.id}
-            onClick={() => onSelectCommunity(community)}
-          >
-            <ListItemAvatar>
-              <Avatar>
-                {community.name.charAt(0).toUpperCase()}
-              </Avatar>
-            </ListItemAvatar>
+      {loading ? (
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
+        <List
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+          }}
+        >
+          {communities.map((community) => (
+            <ListItemButton
+              key={community.id}
+              onClick={() => onSelectCommunity(community)}
+            >
+              <ListItemAvatar>
+                <Avatar>
+                  {community.name.charAt(0).toUpperCase()}
+                </Avatar>
+              </ListItemAvatar>
 
-            <ListItemText
-              primary={community.name}
-              secondary={community.description}
-            />
-          </ListItemButton>
-        ))}
-      </List>
+              <ListItemText
+                primary={community.name}
+                secondary={community.description}
+              />
+            </ListItemButton>
+          ))}
+        </List>
+      )}
     </Box>
   );
 };

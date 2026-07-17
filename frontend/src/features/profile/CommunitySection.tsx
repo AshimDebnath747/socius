@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 
 import type { Community } from "../../types/user";
+import { Link } from "react-router-dom";
 
 interface CommunitySectionProps {
   communities: Community[];
@@ -65,7 +66,7 @@ const CommunitySection = ({ communities }: CommunitySectionProps) => {
                 >
                   <Stack spacing={1.5} alignItems="center">
                     <Avatar
-                      src={community.avatar ?? undefined}
+                      src={`${import.meta.env.VITE_BACKEND_URL}${community.avatar}`}
                       sx={{
                         width: 60,
                         height: 60,
@@ -74,31 +75,17 @@ const CommunitySection = ({ communities }: CommunitySectionProps) => {
                       {community.name.charAt(0).toUpperCase()}
                     </Avatar>
 
-                    <Typography
-                      fontWeight={700}
-                      fontSize={18}
-                    >
+                    <Typography fontWeight={700} fontSize={18}>
                       {community.name}
                     </Typography>
 
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                    >
+                    <Typography variant="body2" color="text.secondary">
                       {community.total_members} Members
                     </Typography>
 
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        minHeight: 40,
-                      }}
-                    >
-                      Community on Socius
-                    </Typography>
-
                     <Button
+                      component={Link}
+                      to={`/explorecommunities/${community.slug}`}
                       size="small"
                       variant="contained"
                       sx={{

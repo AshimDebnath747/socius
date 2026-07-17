@@ -47,6 +47,7 @@ export const getUserById = async (id) => {
     SELECT
       c.id,
       c.name,
+      c.slug,
       c.avatar,
       c.is_private,
       COUNT(cm2.user_id) AS total_members
@@ -59,6 +60,7 @@ export const getUserById = async (id) => {
     GROUP BY
       c.id,
       c.name,
+      c.slug,
       c.avatar
     ORDER BY c.name;
   `;

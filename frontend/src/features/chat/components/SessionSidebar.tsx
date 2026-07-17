@@ -1,6 +1,7 @@
 import {
   Avatar,
   Box,
+  CircularProgress,
   List,
   ListItemAvatar,
   ListItemButton,
@@ -23,22 +24,24 @@ const SessionSidebar = ({
 }: SessionSidebarProps) => {
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-
-
-useEffect(() => {
+  useEffect(() => {
     const fetchSessions = async () => {
-        try {
-            const data = await getSessions();
-            setSessions(data);
-            
-        } catch (err) {
-            console.error(err);
-        }
+      setIsLoading(true);
+
+      try {
+        const data = await getSessions();
+        setSessions(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchSessions();
-}, []);
+  }, []);
 
 
 
@@ -67,28 +70,41 @@ useEffect(() => {
     Chats
   </Typography>
 
-  <List
-    sx={{
-      flex: 1,
-      overflowY: "auto",
-    }}
-  >
-    {sessions.map((session) => (
-      <ListItemButton
-        key={session.id}
-        onClick={() => onSelectSession(session)}
-      >
-        <ListItemAvatar>
-          <Avatar>{session.urgency.charAt(0)}</Avatar>
-        </ListItemAvatar>
+  {isLoading ? (
+    <Box
+      sx={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <CircularProgress />
+    </Box>
+  ) : (
+    <List
+      sx={{
+        flex: 1,
+        overflowY: "auto",
+      }}
+    >
+      {sessions.map((session) => (
+        <ListItemButton
+          key={session.id}
+          onClick={() => onSelectSession(session)}
+        >
+          <ListItemAvatar>
+            <Avatar>{session.urgency.charAt(0)}</Avatar>
+          </ListItemAvatar>
 
-        <ListItemText
-          primary={session.title}
-          secondary={session.urgency}
-        />
-      </ListItemButton>
-    ))}
-  </List>
+          <ListItemText
+            primary={session.title}
+            secondary={session.urgency}
+          />
+        </ListItemButton>
+      ))}
+    </List>
+  )}
 </Box>
   );
 };

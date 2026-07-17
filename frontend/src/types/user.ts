@@ -26,6 +26,7 @@ export interface UserStats {
 export interface Community {
   id: number;
   name: string;
+  slug: string;
   avatar: string | null;
   total_members: string;
 }
