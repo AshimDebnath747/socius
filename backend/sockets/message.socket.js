@@ -5,6 +5,11 @@ export const registerMessageEvents = (io, socket) => {
 
     socket.on("join-session", (sessionId) => {
         console.log(`joined session-${sessionId}`)
+        for (const room of socket.rooms) {
+            if (room.startsWith("session-")) {
+                socket.leave(room);
+            }
+        }
         socket.join(`session-${sessionId}`);
     });
     socket.on("join-community", (sessionId) => {
@@ -54,7 +59,7 @@ export const registerMessageEvents = (io, socket) => {
             [messageId]
         );
         const senderId = senderRows[0].sender_id;
-
+        console.log(senderId)
         io.to(`user-${senderId}`).emit(
             "message-delivered",
             {
@@ -104,6 +109,12 @@ export const registerMessageEvents = (io, socket) => {
                 communityId: type === "community" ? sessionId : null,
             });
             console.log("the community memebers are ", participants)
+
+            const room =
+                type === "community"
+                    ? `community-${sessionId}`
+                    : `session-${sessionId}`;
+
             for (const participant of participants) {
 
                 const userSockets = onlineUsers.get(participant.user_id);
@@ -114,26 +125,26 @@ export const registerMessageEvents = (io, socket) => {
                     continue;
                 }
 
-                let viewingCommunity = false;
+                let viewingRoom = false;
 
                 // Check whether any of the user's sockets is in this community
                 for (const socketId of userSockets) {
 
                     const s = io.sockets.sockets.get(socketId);
 
-                    if (s && s.rooms.has(`community-${sessionId}`)) {
-                        viewingCommunity = true;
+                    if (s && s.rooms.has(room)) {
+                        viewingRoom = true;
                         break;
                     }
                 }
 
-                if (viewingCommunity) {
-                    console.log(participant.user_id, " is viewing community!")
+                if (viewingRoom) {
+                    console.log(participant.user_id, " is viewing room!")
 
                     // User is currently viewing this community
 
                 } else {
-                    console.log(participant.user_id, " is online but not viewing community!")
+                    console.log(participant.user_id, " is online but not viewing room!")
 
                     // User is online but somewhere else
                     io.to(`user-${participant.user_id}`).emit(
@@ -149,10 +160,6 @@ export const registerMessageEvents = (io, socket) => {
 
                 }
             }
-            const room =
-                type === "community"
-                    ? `community-${sessionId}`
-                    : `session-${sessionId}`;
             console.log("room ", room)
             console.log("on receive", fullMessage)
             io.to(room).emit("receive-message", fullMessage);

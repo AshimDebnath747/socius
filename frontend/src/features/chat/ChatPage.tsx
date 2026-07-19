@@ -32,16 +32,18 @@ const ChatPage = () => {
 
     useEffect(() => {
         const handleDelivered = ({ messageId }: { messageId: string }) => {
+            console.log("message delivered event hit on message id", messageId)
             setMessages(prev =>
-                prev.map(m =>
-                    m.id === messageId
+                prev.map(msg =>
+                    String(msg.id) === String(messageId)
                         ? {
-                            ...m,
-                            deliveredAt: new Date().toISOString(),
+                            ...msg,
+                            isDelivered: true,
                         }
-                        : m
+                        : msg
                 )
             );
+
         };
 
         socket.on("message-delivered", handleDelivered);
@@ -54,12 +56,16 @@ const ChatPage = () => {
     useEffect(() => {
 
         const handleReceiveMessage = (msg: any) => {
+
             const message: Message = {
                 id: String(msg.id),
                 sessionId: String(msg.session_id),
                 senderId: String(msg.sender_id),
                 content: msg.content,
                 createdAt: msg.created_at,
+                isDelivered: msg.is_delivered,
+                isRead: msg.is_read
+
             };
             console.log(message.createdAt);
             console.log(typeof message.createdAt);
@@ -94,7 +100,7 @@ const ChatPage = () => {
                     content: msg.content,
                     createdAt: msg.created_at,
                     isRead: msg.is_read,
-                    isEdited: msg.is_edited,
+                    isDelivered: msg.is_delivered,
                     isDeleted: msg.is_deleted,
                 }));
 

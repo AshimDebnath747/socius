@@ -70,20 +70,15 @@ export default function CommunityChatBubble({
                     px: 2,
                     py: 1.2,
 
-                    bgcolor: isOwn
-                        ? chatColors.primary
-                        : "#fff",
+                    bgcolor: isOwn ? chatColors.primary : "#fff",
 
-                    color: isOwn
-                        ? "#fff"
-                        : chatColors.ink,
+                    color: isOwn ? "#fff" : chatColors.ink,
 
                     border: isOwn
                         ? "none"
                         : `1px solid ${chatColors.line}`,
 
-                    boxShadow:
-                        "0 2px 8px rgba(0,0,0,.06)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,.06)",
 
                     borderRadius: 3,
 
@@ -109,52 +104,20 @@ export default function CommunityChatBubble({
                 >
                     {message.content}
                 </Typography>
-
-                {(message.isEdited || isOwn) && (
-                    <Stack
-                        direction="row"
-                        spacing={0.5}
-                        justifyContent="flex-end"
-                        alignItems="center"
-                        mt={0.5}
-                    >
-                        {message.isEdited && (
-                            <Typography
-                                variant="caption"
-                                sx={{
-                                    fontSize: 10,
-                                    opacity: 0.8,
-                                }}
-                            >
-                                edited
-                            </Typography>
-                        )}
-
-                        {isOwn &&
-                            (message.isRead ? (
-                                <DoneAllIcon
-                                    sx={{
-                                        fontSize: 14,
-                                        color: "#90CAF9",
-                                    }}
-                                />
-                            ) : (
-                                <DoneIcon
-                                    sx={{
-                                        fontSize: 14,
-                                        opacity: 0.8,
-                                    }}
-                                />
-                            ))}
-                    </Stack>
-                )}
             </Box>
 
-            {showTimestamp && (
+            <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                justifyContent={isOwn ? "flex-end" : "flex-start"}
+                sx={{
+                    mt: 0.5,
+                    px: 0.5,
+                }}
+            >
                 <Typography
                     sx={{
-                        mt: 0.5,
-                        px: 0.5,
                         fontFamily: chatFonts.mono,
                         fontSize: 11,
                         color: chatColors.inkSoft,
@@ -162,7 +125,32 @@ export default function CommunityChatBubble({
                 >
                     {getDateTimeLabel(message.createdAt)}
                 </Typography>
-            )}
+
+                {isOwn &&
+                    (message.isRead ? (
+                        <DoneAllIcon
+                            sx={{
+                                fontSize: 14,
+                                color: "#42A5F5",
+                            }}
+                        />
+                    ) : message.isDelivered ? (
+                        <DoneAllIcon
+                            sx={{
+                                fontSize: 14,
+                                color: chatColors.inkSoft,
+                            }}
+                        />
+                    ) : (
+                        <DoneIcon
+                            sx={{
+                                fontSize: 14,
+                                color: chatColors.inkSoft,
+                                opacity: 0.8,
+                            }}
+                        />
+                    ))}
+            </Stack>
         </Box>
     );
 }
