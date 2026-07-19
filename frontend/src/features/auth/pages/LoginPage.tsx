@@ -15,8 +15,8 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
-
-import axios from 'axios';
+import googlelogo from "../../../assets/googlelogo.svg"
+import axios from "axios";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -27,25 +27,30 @@ interface LoginFormValues {
 //   email: string;
 // }
 // interface LoginResponse {
-//   data : 
+//   data :
 // }
 const LoginPage = () => {
   const { register, handleSubmit } = useForm<LoginFormValues>();
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const API = import.meta.env.VITE_BACKEND_URL
+  const API = import.meta.env.VITE_BACKEND_URL;
 
   // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const res = await axios.post(`${API}/api/auth/login`, { // 🔥 important for cookies
-        email: data.email,
-        password: data.password,
-      }, { withCredentials: true });
-      console.log(res.data.data)
+      const res = await axios.post(
+        `${API}/api/auth/login`,
+        {
+          // 🔥 important for cookies
+          email: data.email,
+          password: data.password,
+        },
+        { withCredentials: true },
+      );
+      console.log(res.data.data);
       localStorage.setItem("user", JSON.stringify(res.data.data));
-      window.location.assign("/") // force reload so auth check works
+      window.location.assign("/"); // force reload so auth check works
     } catch (error) {
       const message = "wrong credetials bro!";
       alert(message);
@@ -178,6 +183,15 @@ const LoginPage = () => {
                 fontWeight: 500,
               }}
             >
+              <img
+                src={googlelogo}
+                alt="Google"
+                style={{
+                  width: 20,
+                  height: 20,
+                  marginRight: 10,
+                }}
+              />
               Continue with Google
             </Button>
           </Box>

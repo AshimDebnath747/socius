@@ -150,6 +150,7 @@ const ChatPage = () => {
                             otherUser={{
                                 name: chatUser?.name || "Loading...",
                                 role: chatUser?.role || "Loading...",
+                                avatarUrl: chatUser?.avatar
                             }}
                         />
 

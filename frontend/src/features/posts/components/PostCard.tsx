@@ -74,66 +74,39 @@ const PostCard = ({ post, onClick }: Props) => {
           alignItems="center"
           mb={2}
         >
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-          >
-            <Avatar src={`${import.meta.env.VITE_BACKEND_URL}${post.avatar}`}
-              sx={{ bgcolor: "primary.main" }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar
+              src={`${import.meta.env.VITE_BACKEND_URL}${post.avatar}`}
+              sx={{ bgcolor: "primary.main" }}
+            >
               {post.name.charAt(0).toUpperCase()}
             </Avatar>
 
             <Box>
-              <Typography fontWeight={700}>
-                {post.name}
-              </Typography>
+              <Typography fontWeight={700}>{post.name}</Typography>
 
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
+              <Typography variant="body2" color="text.secondary">
                 Help Request
               </Typography>
             </Box>
           </Stack>
 
-          <Stack
-            direction="row"
-            spacing={0.5}
-            alignItems="center"
-          >
-            <AccessTimeIcon
-              fontSize="small"
-              color="disabled"
-            />
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <AccessTimeIcon fontSize="small" color="disabled" />
 
-            <Typography
-              variant="body2"
-              color="text.secondary"
-            >
+            <Typography variant="body2" color="text.secondary">
               {new Date(post.createdAt).toLocaleDateString()}
             </Typography>
           </Stack>
         </Stack>
 
         {/* Title */}
-        <Typography
-          variant="h5"
-          fontWeight={700}
-          mb={2}
-        >
+        <Typography variant="h5" fontWeight={700} mb={2}>
           {post.title}
         </Typography>
 
         {/* Tags */}
-        <Stack
-          direction="row"
-          spacing={1}
-          flexWrap="wrap"
-          useFlexGap
-          mb={2}
-        >
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
           <Chip
             icon={<WarningAmberIcon />}
             label={`Urgency: ${post.urgency}`}
@@ -163,10 +136,7 @@ const PostCard = ({ post, onClick }: Props) => {
         </Typography>
 
         {/* Footer */}
-        <Stack
-          direction="row"
-          spacing={1}
-        >
+        <Stack direction="row" spacing={1}>
           <Chip
             icon={<CommentIcon />}
             label="Comment"

@@ -234,6 +234,7 @@ const CommunityPage = () => {
               otherUser={{
                 name: selectedCommunity.name || "Loading...",
                 role: "click for more info",
+                avatarUrl: selectedCommunity.avatar
               }}
               onClick={() => setShowDashboard(true)}
             />

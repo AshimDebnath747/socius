@@ -26,6 +26,8 @@ const FeedPage = () => {
   const [search, setSearch] = useState<string>("");
   const [data, setData] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  
   useEffect(() => {
     const func = async () => {
       try {

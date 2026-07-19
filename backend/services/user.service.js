@@ -174,7 +174,7 @@ export const getNextUserById = async (
   currentUserId,
 ) => {
   const query = `
-    SELECT id, name, email, role, rating
+    SELECT id, name, avatar , role
     FROM users
     WHERE id = $1
   `;
