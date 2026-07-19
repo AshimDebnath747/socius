@@ -4,8 +4,7 @@ export interface Message {
     senderId: string;
     content: string;
     isRead: boolean;
-    isEdited: boolean;
-    isDeleted: boolean;
+    isDelivered: boolean;
     createdAt: string; // ISO timestamp
 }
 
