@@ -1,5 +1,5 @@
 
-  import {
+import {
   Alert,
   Box,
   Snackbar,
@@ -57,7 +57,42 @@ const CommunityPage = () => {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    messages.forEach((msg) => {
+      if (
+        msg.senderId !== CURRENT_USER_ID &&
+        !msg.isRead
+      ) {
+        socket.emit("message-read", {
+          messageId: msg.id,
+        });
+      }
+    });
+  }, [messages]);
 
+  useEffect(() => {
+
+    const handleMessageRead = ({ messageId }: { messageId: string }) => {
+      console.log("message read event hit on message id", messageId)
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === String(messageId)
+            ? {
+              ...msg,
+              isRead: true,
+            }
+            : msg
+        )
+      );
+    };
+
+    socket.on("message-read", handleMessageRead);
+
+    return () => {
+      socket.off("message-read", handleMessageRead);
+    }
+
+  }, []);
   useEffect(() => {
 
     const handleDelivered = ({

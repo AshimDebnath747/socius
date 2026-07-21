@@ -18,8 +18,11 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import PersonIcon from '@mui/icons-material/Person';
-
-
+import { io } from "socket.io-client";
+const socket = io(import.meta.env.VITE_BACKEND_URL, {
+  withCredentials: true,
+  autoConnect: false,
+});
 type NavBarAuth = {
   checkAuth: boolean;
   setCheckAuth: React.Dispatch<React.SetStateAction<boolean | null>>;
@@ -44,6 +47,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
 
 
     setLoggingOut(true);
+    socket.disconnect();
 
     try {
       await fetch(`${API}/api/auth/logout`, {

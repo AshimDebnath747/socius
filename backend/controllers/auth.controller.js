@@ -1,4 +1,13 @@
 import { signupUser, loginUser, checkAuthService } from "../services/auth.service.js";
+
+const isProd = process.env.NODE_ENV === "production";
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/",
+};
 export const signup = async (req, res) => {
     try {
         const result = await signupUser(req.body);
@@ -22,8 +31,7 @@ export const login = async (req, res) => {
     try {
         const { token, user } = await loginUser(req.body);
         res.cookie("token", token, {
-            sameSite: "none",  // required for cross-site cookies
-            secure: true,   // only over HTTPS
+            ...cookieOptions,  // only over HTTPS
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         return res.status(200).json({
@@ -46,9 +54,7 @@ export const login = async (req, res) => {
 
 export const logout = (req, res) => {
     res.clearCookie("token", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none"
+        cookieOptions
     });
 
     return res.status(200).json({

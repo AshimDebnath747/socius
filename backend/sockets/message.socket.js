@@ -21,6 +21,53 @@ export const registerMessageEvents = (io, socket) => {
         }
         socket.join(`community-${sessionId}`);
     });
+
+    //message - read ->
+    socket.on("message-read", async ({ messageId }) => {
+
+        const result = await pool.query(
+            `
+        UPDATE message_status
+        SET read_at = NOW()
+        WHERE message_id = $1
+          AND user_id = $2
+          AND read_at IS NULL
+        `,
+            [messageId, socket.user.id]
+        );
+        if (result.rowCount === 0) {
+            return; // Already marked as read, ignore duplicate emits
+        }
+        console.log("message read ", messageId, "by", socket.user.id)
+        const { rows } = await pool.query(
+            `
+        SELECT COUNT(*) = COUNT(read_at) AS everyone_read
+        FROM message_status
+        WHERE message_id = $1
+        `,
+            [messageId]
+        );
+
+        if (!rows[0].everyone_read) {
+            return;
+        }
+
+        const { rows: senderRows } = await pool.query(
+            `
+        SELECT sender_id
+        FROM messages
+        WHERE id = $1
+        `,
+            [messageId]
+        );
+
+        io.to(`user-${senderRows[0].sender_id}`).emit(
+            "message-read",
+            {
+                messageId,
+            }
+        );
+    });
     //message - delivered ->
     socket.on("message-delivered", async ({ messageId }) => {
         // Mark as delivered for this recipient
@@ -60,6 +107,7 @@ export const registerMessageEvents = (io, socket) => {
         );
         const senderId = senderRows[0].sender_id;
         console.log(senderId)
+
         io.to(`user-${senderId}`).emit(
             "message-delivered",
             {
@@ -145,10 +193,21 @@ export const registerMessageEvents = (io, socket) => {
 
                 } else {
                     console.log(participant.user_id, " is online but not viewing room!")
+                    console.log("Sending notification to", `user-${participant.user_id}`);
+                    const event =
+                        type === "community"
+                            ? "community-notification"
+                            : "session-notification";
 
                     // User is online but somewhere else
+                    const room = `user-${participant.user_id}`;
+
+                    console.log(
+                        room,
+                        io.sockets.adapter.rooms.get(room)
+                    );
                     io.to(`user-${participant.user_id}`).emit(
-                        "community-notification",
+                        event,
                         {
                             messageId: fullMessage.id,
                             sessionId,

@@ -20,10 +20,7 @@ import CommunityInfo from "../features/communities/pages/communityInfo";
 import UserProfile from "../features/profile/UserProfile";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
-  withCredentials: true,
-  reconnection: true,
-  reconnectionAttempts: 3,
-  reconnectionDelay: 2000,
+  withCredentials: true
 });
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
@@ -44,13 +41,42 @@ const App = () => {
   });
 
   useEffect(() => {
+    const handleSessionNotification = (data: {
+      messageId: number;
+      sessionId: number;
+      senderName: string;
+      preview: string;
+    }) => {
+      console.log("notification received!")
+      setNotification({
+        open: true,
+        type: "session",
+        sessionId: data.sessionId,
+        communityId: null,
+        message: `${data.senderName}: ${data.preview}`,
+      });
+
+      // Acknowledge delivery
+      socket.emit("message-delivered", {
+        messageId: data.messageId,
+      });
+    };
+
+    socket.on("session-notification", handleSessionNotification);
+
+    return () => {
+      socket.off("session-notification", handleSessionNotification);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleCommunityNotification = (data: {
       messageId: number;
       communityId: number;
       communityName: string;
       senderName: string;
     }) => {
-
+      console.log("COMMUNITY NOTIFICATION RECEIVED", data);
       setNotification({
         open: true,
         type: "community",
@@ -92,16 +118,28 @@ const App = () => {
     };
   }, []);
   useEffect(() => {
-    try {
-      socket.on('connect', () => {
-        //console.log("Fronend connected")
-      })
-    } catch (err) {
-      console.log("server is down!", err)
-    }
+    const onConnect = () => {
+      console.log("Connected:", socket.id);
+    };
 
-    return () => socket.off("connect")
-  }, [])
+    const onDisconnect = (reason: string) => {
+      console.log("Disconnected:", reason);
+    };
+
+    const onConnectError = (err: Error) => {
+      console.log("Connection error:", err.message);
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("connect_error", onConnectError);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("connect_error", onConnectError);
+    };
+  }, []);
   useEffect(() => {
     const checkAuth = async () => {
       try {

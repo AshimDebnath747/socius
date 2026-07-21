@@ -29,7 +29,42 @@ const ChatPage = () => {
 
     const loading = false;
 
+    useEffect(() => {
+        messages.forEach((msg) => {
+            if (
+                msg.senderId !== CURRENT_USER_ID &&
+                !msg.isRead
+            ) {
+                socket.emit("message-read", {
+                    messageId: msg.id,
+                });
+            }
+        });
+    }, [messages]);
 
+    useEffect(() => {
+
+        const handleMessageRead = ({ messageId }: { messageId: string }) => {
+            console.log("message read event hit on message id", messageId)
+            setMessages(prev =>
+                prev.map(msg =>
+                    msg.id === String(messageId)
+                        ? {
+                            ...msg,
+                            isRead: true,
+                        }
+                        : msg
+                )
+            );
+        };
+
+        socket.on("message-read", handleMessageRead);
+
+        return () => {
+            socket.off("message-read", handleMessageRead);
+        }
+
+    }, []);
     useEffect(() => {
         const handleDelivered = ({ messageId }: { messageId: string }) => {
             console.log("message delivered event hit on message id", messageId)
@@ -71,9 +106,11 @@ const ChatPage = () => {
             console.log(typeof message.createdAt);
             // console.log(message.createdAt instanceof Date);
             setMessages((prev) => [...prev, message]);
-            socket.emit("message-delivered", {
-                messageId: message.id,
-            });
+            if (message.senderId !== CURRENT_USER_ID) {
+                socket.emit("message-delivered", {
+                    messageId: message.id,
+                });
+            }
         };
         socket.on("receive-message", handleReceiveMessage);
         return () => {

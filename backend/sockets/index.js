@@ -12,6 +12,11 @@ export const initSocket = (io) => {
 
         const userId = socket.user.id;
 
+        const sockets = onlineUsers.get(userId);
+        console.log(
+            `User ${userId} has ${sockets?.size ?? 0} socket(s)`
+        );
+
         // Track this socket
         if (!onlineUsers.has(userId)) {
             onlineUsers.set(userId, new Set());
@@ -27,7 +32,8 @@ export const initSocket = (io) => {
         registerMessageEvents(io, socket);
         registerSessionEvents(io, socket);
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", (reason) => {
+            console.log("Disconnected:", socket.id, reason);
             const sockets = onlineUsers.get(userId);
 
             if (sockets) {

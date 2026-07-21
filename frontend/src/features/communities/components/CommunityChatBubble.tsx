@@ -125,20 +125,26 @@ export default function CommunityChatBubble({
                     {getDateTimeLabel(message.createdAt)}
                 </Typography>
             )}
-
             {isOwn &&
-                (message.isDelivered ? (
+                (message.isRead ? (
                     <DoneAllIcon
                         sx={{
                             fontSize: 16,
-                            color: "gray",
+                            color: "#4FC3F7", // blue = read
+                        }}
+                    />
+                ) : message.isDelivered ? (
+                    <DoneAllIcon
+                        sx={{
+                            fontSize: 16,
+                            color: "gray", // gray double tick = delivered
                         }}
                     />
                 ) : (
                     <DoneIcon
                         sx={{
                             fontSize: 16,
-                            color: "gray",
+                            color: "gray", // single tick = sent
                         }}
                     />
                 ))}
