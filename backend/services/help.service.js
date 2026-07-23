@@ -1,27 +1,60 @@
-import { pool } from "../config/db.js"
+import { pool } from "../config/db.js";
 
-export const postHelpRequest = async (title, description, categoryId, urgency, preferredMode, communityId, userId) => {
-    if (communityId != null) {
-        const query1 = "SELECT 1 FROM communitymember WHERE community_id = $1 AND user_id = $2";
+export const postHelpRequest = async (
+  title,
+  description,
+  categoryId,
+  urgency,
+  preferredMode,
+  communityId,
+  userId,
+  image,
+) => {
+  // Check if user belongs to the community (if communityId is provided)
+  if (communityId != null) {
+    const query1 =
+      "SELECT 1 FROM communitymember WHERE community_id = $1 AND user_id = $2";
 
-        const { rows: rows1 } = await pool.query(query1, [communityId, userId])
+    const { rows: rows1 } = await pool.query(query1, [communityId, userId]);
 
-        if (!rows1[0]) {
-            throw new Error("You are not a part of this communinty!")
-        }
+    if (!rows1[0]) {
+      throw new Error("You are not a part of this community!");
     }
-    const query = 'INSERT INTO helprequest (title , description , category_id , urgency , preferred_mode , created_by , community_id) VALUES ($1 , $2 , $3 , $4 , $5 , $6 , $7) RETURNING *';
+  }
 
-    const { rows } = await pool.query(query, [title, description, categoryId, urgency, preferredMode, userId, communityId])
+  const query = `
+        INSERT INTO helprequest
+        (
+            title,
+            description,
+            category_id,
+            urgency,
+            preferred_mode,
+            created_by,
+            community_id,
+            image
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *;
+    `;
 
-    return rows
+  const { rows } = await pool.query(query, [
+    title,
+    description,
+    categoryId,
+    urgency,
+    preferredMode,
+    userId,
+    communityId,
+    image,
+  ]);
 
-}
+  return rows[0];
+};
 
 export const getHelpRequest = async (communityId, status) => {
-
-    if (!communityId) {
-        const query = `
+  if (!communityId) {
+    const query = `
         SELECT
             h.*,
             u.name,
@@ -34,11 +67,10 @@ export const getHelpRequest = async (communityId, status) => {
         ORDER BY h.created_at DESC
     `;
 
-        const { rows } = await pool.query(query, [status]);
-        return rows;
-
-    } else {
-        const query = `
+    const { rows } = await pool.query(query, [status]);
+    return rows;
+  } else {
+    const query = `
         SELECT
             h.*,
             u.name
@@ -50,17 +82,15 @@ export const getHelpRequest = async (communityId, status) => {
         ORDER BY h.created_at DESC
     `;
 
-        const { rows } = await pool.query(query, [communityId, status]);
-        return rows;
-    }
-
-}
+    const { rows } = await pool.query(query, [communityId, status]);
+    return rows;
+  }
+};
 
 export const getHelpRequestById = async (id) => {
+  //I think this function needs improvements but I don't have anything in mind rn .. will think in future
 
-    //I think this function needs improvements but I don't have anything in mind rn .. will think in future
-
-    const query = `
+  const query = `
     SELECT
         h.*,
         u.name,
@@ -71,26 +101,25 @@ export const getHelpRequestById = async (id) => {
     WHERE h.id = $1
 `;
 
-    const { rows } = await pool.query(query, [id]);
+  const { rows } = await pool.query(query, [id]);
 
-    if (!rows[0]) {
-        throw new Error("There might be some problem in server!");
-    }
+  if (!rows[0]) {
+    throw new Error("There might be some problem in server!");
+  }
 
-    return rows[0];
-
-}
+  return rows[0];
+};
 
 export const closeHelpRequest = async (id) => {
-    const query = 'UPDATE helprequest SET status = $1 WHERE id = $2 RETURNING *'
+  const query = "UPDATE helprequest SET status = $1 WHERE id = $2 RETURNING *";
 
-    const { rows } = await pool.query(query, ['closed', id])
+  const { rows } = await pool.query(query, ["closed", id]);
 
-    if (!rows[0]) {
-        throw new Error("The help Request id is not valid!")
-    }
+  if (!rows[0]) {
+    throw new Error("The help Request id is not valid!");
+  }
 
-    console.log(rows)
+  console.log(rows);
 
-    return rows[0]
-}
+  return rows[0];
+};

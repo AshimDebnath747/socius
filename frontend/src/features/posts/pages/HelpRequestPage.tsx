@@ -20,7 +20,6 @@ const PostPage = () => {
   const { id } = useParams();
 
   const [request, setRequest] = useState<Post | null>(null);
-  const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"call" | "chat">("call");
 
@@ -42,6 +41,7 @@ const PostPage = () => {
           createdBy: res.data.data.created_by,
           name: res.data.data.name,
           avatar: res.data.data.avatar,
+          image: res.data.data.image,
         };
         setRequest(post);
         console.log(request);
@@ -120,9 +120,24 @@ const PostPage = () => {
         />
         <Grid container spacing={3} alignItems="stretch">
           <Grid size={{ xs: 12, md: 8 }}>
-            <Box sx={{ height: "100%" }}>
+            <Stack spacing={3}>
+              {request.image && (
+                <Box
+                  component="img"
+                  src={`${import.meta.env.VITE_BACKEND_URL}${request.image}`}
+                  alt={request.title}
+                  sx={{
+                    width: "100%",
+                    maxHeight: 450,
+                    objectFit: "cover",
+                    borderRadius: 3,
+                    boxShadow: 3,
+                  }}
+                />
+              )}
+
               <PostDescription description={request.description} />
-            </Box>
+            </Stack>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <Stack spacing={3} sx={{ height: "100%" }}>

@@ -8,6 +8,9 @@ import FeedHeader from "../components/FeedHeader";
 import FeedSearchBar from "../components/FeedSearchBar";
 import CreateHelpFab from "../components/CreateHelpFab";
 import FeedList from "../components/FeedList";
+import { useLocation } from "react-router-dom";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 /* 🔹 Local type */
 // interface Post {
 //   id: string;
@@ -16,28 +19,32 @@ import FeedList from "../components/FeedList";
 //   author: string;
 //   createdAt: string;
 // }
-const user: string | null = localStorage.getItem("user")
-console.log("user :", user)
-let CURRENT_USER_ID: string = ""
+const user: string | null = localStorage.getItem("user");
+console.log("user :", user);
+let CURRENT_USER_ID: string = "";
 
 const FeedPage = () => {
-
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [search, setSearch] = useState<string>("");
   const [data, setData] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const location = useLocation();
 
-  
+  const [openSnackbar, setOpenSnackbar] = useState(
+    Boolean(location.state?.success),
+  );
+
   useEffect(() => {
     const func = async () => {
       try {
         const API = import.meta.env.VITE_BACKEND_URL;
         const res = await api.get(`${API}/api/help-requests?status=open`);
         if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
-        console.log(res.data)
+        console.log(res.data);
         const data = res.data.data
           .filter(
-            ({ created_by }: HelpRequestResponse) => String(created_by) !== CURRENT_USER_ID
+            ({ created_by }: HelpRequestResponse) =>
+              String(created_by) !== CURRENT_USER_ID,
           )
           .map(
             ({
@@ -56,13 +63,13 @@ const FeedPage = () => {
               createdBy: created_by,
               name,
               preferredMode: preferred_mode,
-            })
+            }),
           );
 
-        setData(data)
-        setLoading(false)
+        setData(data);
+        setLoading(false);
       } catch (err) {
-        console.log(err)
+        console.log(err);
       }
     };
 
@@ -70,23 +77,34 @@ const FeedPage = () => {
   }, []);
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-
       {/* <FeedHeader /> */}
 
       <FeedSearchBar
         value={search}
         onChange={setSearch}
-        onFilterClick={() => { }}
+        onFilterClick={() => {}}
       />
       {loading && <Loader />}
-      <FeedList
-        posts={data}
-        search={search}
-      />
+      <FeedList posts={data} search={search} />
 
-      <CreateHelpFab
-        onClick={() => navigate("/helprequest")}
-      />
+      <CreateHelpFab onClick={() => navigate("/helprequest")} />
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={5000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          onClose={() => setOpenSnackbar(false)}
+        >
+          {location.state?.success}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -1,21 +1,35 @@
-import express from 'express'
-import { postHelpRequestController, getHelpRequestController, getHelpRequestByIdController, closeHelpRequestController } from '../controllers/help.controller.js'
-import { authMiddleware } from '../middlewares/auth.middleware.js'
-import { validateQuery, validate } from '../middlewares/validate.middleware.js'
-import { createHelpRequest, getHelpRequestQuery } from '../validators/help.validator.js'
+import express from "express";
+import {
+  postHelpRequestController,
+  getHelpRequestController,
+  getHelpRequestByIdController,
+  closeHelpRequestController,
+} from "../controllers/help.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { validateQuery, validate } from "../middlewares/validate.middleware.js";
+import {
+  createHelpRequest,
+  getHelpRequestQuery,
+} from "../validators/help.validator.js";
+import { uploadHelpRequest } from "../middlewares/upload.middleware.js";
 
-const router = express.Router()
+const router = express.Router();
 
-router.use(authMiddleware)
+router.use(authMiddleware);
 
 //post requests
-router.post("/", validate(createHelpRequest), postHelpRequestController)
+router.post(
+  "/",
+  uploadHelpRequest.single("image"),
+  validate(createHelpRequest),
+  postHelpRequestController,
+);
 
 //get requests
-router.get("/", validateQuery(getHelpRequestQuery), getHelpRequestController)
-router.get("/:id", getHelpRequestByIdController)
+router.get("/", validateQuery(getHelpRequestQuery), getHelpRequestController);
+router.get("/:id", getHelpRequestByIdController);
 
 //put requests
-router.put("/:id/close", closeHelpRequestController)
+router.put("/:id/close", closeHelpRequestController);
 
-export default router
+export default router;

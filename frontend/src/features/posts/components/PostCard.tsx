@@ -104,6 +104,22 @@ const PostCard = ({ post, onClick }: Props) => {
         <Typography variant="h5" fontWeight={700} mb={2}>
           {post.title}
         </Typography>
+        {post.image && (
+          <Box
+            component="img"
+            src={`${import.meta.env.VITE_BACKEND_URL}${post.image}`}
+            alt={post.title}
+            sx={{
+              width: "100%",
+              maxHeight: 350,
+              objectFit: "cover",
+              borderRadius: 3,
+              mb: 2,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          />
+        )}
 
         {/* Tags */}
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
