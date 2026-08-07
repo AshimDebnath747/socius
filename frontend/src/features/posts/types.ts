@@ -35,7 +35,7 @@ export interface CommunityMember {
   email: string;
   role: string;
   joinedAt: string;
-  profilePicture?: string;
+  avatar: string;
 }
 
 export interface ChatHeaderProps {

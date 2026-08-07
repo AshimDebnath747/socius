@@ -13,7 +13,7 @@ import {
 import GroupIcon from "@mui/icons-material/Group";
 
 import { type CommunityMember } from "../../posts/types";
-
+const API = import.meta.env.VITE_BACKEND_URL;
 
 interface CommunityMembersCardProps {
     members: CommunityMember[];
@@ -58,7 +58,7 @@ const CommunityMembersCard = ({
                         {members.map((member) => (
                             <ListItem divider key={member.id}>
                                 <ListItemAvatar>
-                                    <Avatar src={member.profilePicture}>
+                                    <Avatar src={`${API}${member.avatar}`}>
                                         {member.name.charAt(0).toUpperCase()}
                                     </Avatar>
                                 </ListItemAvatar>

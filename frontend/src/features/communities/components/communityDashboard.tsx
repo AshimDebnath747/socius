@@ -32,7 +32,7 @@ import { type Community } from "../../../types/community";
 import { type JoinRequest } from "../../posts/types";
 import { useEffect } from "react";
 import axios from "axios";
-import { HdrAuto } from "@mui/icons-material";
+import CommunityMembers from "./communityMembersDashboard";
 interface Props {
     community: Community;
     onBack: () => void;
@@ -250,6 +250,11 @@ const CommunityDashboard = ({
                 >
                     <Grid size={{ xs: 12, md: 3 }}>
                         <Card
+                            onClick={() =>
+                                setActiveSection((prev) =>
+                                    prev === "members" ? "overview" : "members"
+                                )
+                            }
                             sx={{
                                 cursor: "pointer",
                                 transition: ".25s",
@@ -303,6 +308,11 @@ const CommunityDashboard = ({
                                         color="primary"
                                         fontSize="large"
                                     />
+                                    {activeSection === "members" ? (
+                                        <ExpandLessIcon />
+                                    ) : (
+                                        <ExpandMoreIcon />
+                                    )}
 
                                     {activeSection === "requests" ? (
                                         <ExpandLessIcon />
@@ -371,6 +381,9 @@ const CommunityDashboard = ({
                 </Grid>
 
                 {/* Join Requests */}
+                <Collapse in={activeSection === "members"}>
+                    <CommunityMembers communityId={community.id} />
+                </Collapse>
 
                 <Collapse in={activeSection === "requests"}>
                     <Paper
