@@ -19,7 +19,7 @@ export const postHelpRequestController = async (req, res) => {
     const userId = req.user.id;
 
     // Image path saved by Multer
-const image = req.file ? req.file.path : null;
+    const image = req.file ? req.file.path : null;
     const result = await postHelpRequest(
       title,
       description,

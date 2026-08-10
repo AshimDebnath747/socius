@@ -126,7 +126,7 @@ export const getAllCommunityMembers = async (communityId) => {
   }
 
   const query =
-    "SELECT u.id , u.name , u.email , u.avatar, cm.role , cm.joined_at FROM communitymember cm JOIN users u ON u.id = cm.user_id WHERE cm.community_id = $1";
+    "SELECT u.id , u.name , u.email , u.avatar , cm.role , cm.joined_at FROM communitymember cm JOIN users u ON u.id = cm.user_id WHERE cm.community_id = $1";
 
   const { rows } = await pool.query(query, [communityId]);
 

@@ -36,6 +36,7 @@ export interface CommunityMember {
   role: string;
   joinedAt: string;
   avatar: string;
+  isCurrentUser: boolean;
 }
 
 export interface ChatHeaderProps {

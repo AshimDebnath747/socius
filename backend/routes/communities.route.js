@@ -9,7 +9,7 @@ const router = express.Router()
 //middleware
 router.use(authMiddleware)
 //post requests:
-router.post("/", uploadCommunityAvatar.single("avatar"),validate(createCommunitySchema), createCommunityController)
+router.post("/", uploadCommunityAvatar.single("avatar"), validate(createCommunitySchema), createCommunityController)
 router.post("/:id/join", joinCommunityController)
 router.post("/:id/join-request", joinRequestController)
 router.post("/:id/join-requests/:requestId/accept", acceptJoinRequestController)
