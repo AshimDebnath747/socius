@@ -9,7 +9,10 @@ export const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }, // required for Neon
 });
-
+pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle PostgreSQL client:', err.message);
+    // Do not exit the process here; the pool will automatically discard the dead client.
+});
 // Test the connection
 (async () => {
     try {

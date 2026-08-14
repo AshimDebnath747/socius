@@ -10,19 +10,20 @@ import {
   Typography,
 } from "@mui/material";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import TravelExploreRoundedIcon from "@mui/icons-material/TravelExploreRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
-import PersonIcon from '@mui/icons-material/Person';
+import PersonIcon from "@mui/icons-material/Person";
 import { io } from "socket.io-client";
+
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   withCredentials: true,
   autoConnect: false,
 });
+
 type NavBarAuth = {
   checkAuth: boolean;
   setCheckAuth: React.Dispatch<React.SetStateAction<boolean | null>>;
@@ -30,22 +31,37 @@ type NavBarAuth = {
 
 const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const API = import.meta.env.VITE_BACKEND_URL;
+  const isProfilePage = location.pathname === "/profile";
 
+  // Helper to determine if a route is currently active (supports nested routes too)
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
 
-  //conditional redering for profile icon and logout button
-
-  const location = useLocation()
-
-  const isProfilePage = location.pathname === "/profile"
-
-
+  // Dynamic icon styles based on active state
+  const getIconStyle = (path: string) => {
+    const active = isActive(path);
+    return {
+      width: 46,
+      height: 46,
+      borderRadius: "12px",
+      color: active ? "#2563EB" : "#4B5563",
+      backgroundColor: active ? "#EEF4FF" : "transparent",
+      boxShadow: active ? "0 2px 6px rgba(37, 99, 235, 0.15)" : "none",
+      transition: "all 0.2s ease",
+      "&:hover": {
+        backgroundColor: "#EEF4FF",
+        color: "#2563EB",
+      },
+    };
+  };
 
   const handleLogout = async () => {
-
-
     setLoggingOut(true);
     socket.disconnect();
 
@@ -62,20 +78,6 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
     } finally {
       setLoggingOut(false);
     }
-
-
-  };
-  const iconStyle = {
-    width: 46,
-    height: 46,
-    borderRadius: "12px",
-    color: "#4B5563",
-    backgroundColor: "transparent",
-    transition: "all 0.2s ease",
-    "&:hover": {
-      backgroundColor: "#EEF4FF",
-      color: "#2563EB",
-    },
   };
 
   return (
@@ -98,7 +100,6 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
         }}
       >
         {/* Logo */}
-
         <Typography
           component={NavLink}
           to="/"
@@ -115,7 +116,6 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
         </Typography>
 
         {/* Navigation */}
-
         <Box
           sx={{
             display: "flex",
@@ -124,25 +124,25 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
           }}
         >
           <Tooltip title="Feed" arrow>
-            <IconButton component={NavLink} to="/feed" sx={iconStyle}>
+            <IconButton component={NavLink} to="/feed" sx={getIconStyle("/feed")}>
               <HomeRoundedIcon />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Chat" arrow>
-            <IconButton component={NavLink} to="/chat" sx={iconStyle}>
+            <IconButton component={NavLink} to="/chat" sx={getIconStyle("/chat")}>
               <ChatRoundedIcon />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Community" arrow>
-            <IconButton component={NavLink} to="/create-community" sx={iconStyle}>
+            <IconButton component={NavLink} to="/create-community" sx={getIconStyle("/create-community")}>
               <GroupsRoundedIcon />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Explore Communities" arrow>
-            <IconButton component={NavLink} to="/explorecommunities" sx={iconStyle}>
+            <IconButton component={NavLink} to="/explorecommunities" sx={getIconStyle("/explorecommunities")}>
               <TravelExploreRoundedIcon />
             </IconButton>
           </Tooltip>
@@ -153,7 +153,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
                 <IconButton
                   onClick={handleLogout}
                   disabled={loggingOut}
-                  sx={iconStyle}
+                  sx={getIconStyle("/profile")}
                 >
                   {loggingOut ? (
                     <CircularProgress size={20} />
@@ -167,7 +167,7 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
                 <IconButton
                   component={NavLink}
                   to="/profile"
-                  sx={iconStyle}
+                  sx={getIconStyle("/profile")}
                 >
                   <PersonIcon />
                 </IconButton>
@@ -176,13 +176,13 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
           ) : (
             <>
               <Tooltip title="Login" arrow>
-                <IconButton component={NavLink} to="/login" sx={iconStyle}>
+                <IconButton component={NavLink} to="/login" sx={getIconStyle("/login")}>
                   <LoginRoundedIcon />
                 </IconButton>
               </Tooltip>
 
               <Tooltip title="Sign Up" arrow>
-                <IconButton component={NavLink} to="/register" sx={iconStyle}>
+                <IconButton component={NavLink} to="/register" sx={getIconStyle("/register")}>
                   <PersonAddRoundedIcon />
                 </IconButton>
               </Tooltip>
