@@ -1,5 +1,7 @@
 import { helpRequestAccept, getSessionById, endSessionById, cancelSessionById, getMessages, getAllSessions } from "../services/session.service.js"
-
+import fs from "fs";
+import path from "path";
+import { pool } from "../config/db.js";
 import { getIO } from "../sockets/index.js"
 
 export const helpRequestAcceptController = async (req, res) => {
@@ -147,3 +149,77 @@ export const getAllSessionsController = async (req, res) => {
     }
 
 }
+
+// session media uploading
+
+export const uploadSessionMediaController = async (req, res) => {
+    try {
+        const { id: sessionId } = req.params;
+        const userId = req.user.id;
+
+        // No file uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Please upload a media file.",
+            });
+        }
+
+        // Check whether the user belongs to this session
+        const { rows } = await pool.query(
+            `
+            SELECT id
+            FROM session
+            WHERE id = $1
+            AND (requester_id = $2 OR helper_id = $2)
+            `,
+            [sessionId, userId]
+        );
+
+        if (!rows.length) {
+            // Remove the file because Multer already saved it
+            await fs.promises.unlink(req.file.path).catch(() => {});
+
+            return res.status(403).json({
+                success: false,
+                message: "You are not a participant of this session.",
+            });
+        }
+
+        const mediaUrl = `/uploads/chat-media/${req.file.filename}`;
+
+        let messageType = "file";
+
+        if (req.file.mimetype.startsWith("image/")) {
+            messageType = "image";
+        } else if (req.file.mimetype.startsWith("video/")) {
+            messageType = "video";
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: "Media uploaded successfully.",
+            data: {
+                mediaUrl,
+                mediaName: req.file.originalname,
+                mediaMimeType: req.file.mimetype,
+                mediaSize: req.file.size,
+                messageType,
+            },
+        });
+
+    } catch (error) {
+        console.error("Media upload error:", error);
+
+        // If something failed after Multer saved the file,
+        // clean it up.
+        if (req.file?.path) {
+            await fs.promises.unlink(req.file.path).catch(() => {});
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to upload media.",
+        });
+    }
+};

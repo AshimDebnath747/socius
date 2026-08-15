@@ -2,7 +2,11 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-export const createUploader = (folderName) => {
+export const createUploader = (
+    folderName,
+    allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+    maxFileSize = 25 * 1024 * 1024
+) => {
     const uploadDir = `uploads/${folderName}`;
 
     if (!fs.existsSync(uploadDir)) {
@@ -23,16 +27,14 @@ export const createUploader = (folderName) => {
     });
 
     const fileFilter = (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
-
-        const isValid =
-            allowedTypes.test(path.extname(file.originalname).toLowerCase()) &&
-            allowedTypes.test(file.mimetype);
-
-        if (isValid) {
+        if (allowedMimeTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error("Only image files are allowed."));
+            cb(
+                new Error(
+                    `Unsupported file type: ${file.mimetype}`
+                )
+            );
         }
     };
 
@@ -40,10 +42,31 @@ export const createUploader = (folderName) => {
         storage,
         fileFilter,
         limits: {
-            fileSize: 25 * 1024 * 1024,
+            fileSize: maxFileSize,
         },
     });
 };
 
+
+// Existing uploaders
 export const uploadAvatar = createUploader("avatars");
+
 export const uploadHelpRequest = createUploader("help-requests");
+
+
+// Chat media
+export const uploadChatMedia = createUploader(
+    "chat-media",
+    [
+        // Images
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+
+        // Videos
+        "video/mp4",
+        "video/webm",
+    ],
+    50 * 1024 * 1024
+);

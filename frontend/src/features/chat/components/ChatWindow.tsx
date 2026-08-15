@@ -63,7 +63,7 @@ export default function ChatWindow({ messages, loading, currentUserId }: Props) 
                     <MessageBubble
                         key={msg.id}
                         message={msg}
-                        isOwn={msg.senderId === currentUserId}
+                        isOwn={String(msg.senderId) === String(currentUserId)}
                         isLastInGroup={isLastInGroup}
                         showTimestamp={isLastInGroup}
                     />

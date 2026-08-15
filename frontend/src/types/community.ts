@@ -19,13 +19,17 @@ export interface CommunityMessage {
 
     content: string;
 
+    messageType: string;
+
+    mediaUrl: string | null;
+    mediaName: string | null;
+
     isRead: boolean;
     isDelivered: boolean;
 
     createdAt: string;
     updatedAt: string;
 
-    // Sender Info
     name: string;
     email: string;
     avatar: string | null;

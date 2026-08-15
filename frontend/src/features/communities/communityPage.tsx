@@ -1,10 +1,4 @@
-
-import {
-  Alert,
-  Box,
-  Snackbar,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Snackbar, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import CommunitySidebar from "../communities/components/communitiesSidebar";
@@ -12,7 +6,7 @@ import CreateCommunityPage from "../communities/components/CreateCommunityPage";
 import { io } from "socket.io-client";
 import { getAllCommunities } from "../../services/community.service";
 import type { Community, CommunityMessage } from "../../types/community";
-import axios from 'axios';
+import axios from "axios";
 import CommunityChatWindow from "./components/CommunityChatWindow";
 import MessageInput from "../chat/components/MessageInput";
 import ChatHeader from "../chat/components/ChatHeader";
@@ -21,15 +15,16 @@ const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
 });
-const user: string | null = localStorage.getItem("user")
-let CURRENT_USER_ID: string = ""
+const user: string | null = localStorage.getItem("user");
+let CURRENT_USER_ID: string = "";
 if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
 const CommunityPage = () => {
-  const [messages, setMessages] = useState<CommunityMessage[]>([])
+  const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [loading, setLoading] = useState<boolean>(true)
-  const [selectedCommunity, setSelectedCommunity] =
-    useState<Community | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
+    null,
+  );
   const [showDashboard, setShowDashboard] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -47,7 +42,7 @@ const CommunityPage = () => {
 
         if (!prev) return data[0];
 
-        const exists = data.some((c: { id: number; }) => c.id === prev.id);
+        const exists = data.some((c: { id: number }) => c.id === prev.id);
 
         return exists ? prev : data[0];
       });
@@ -59,10 +54,7 @@ const CommunityPage = () => {
   };
   useEffect(() => {
     messages.forEach((msg) => {
-      if (
-        msg.senderId !== CURRENT_USER_ID &&
-        !msg.isRead
-      ) {
+      if (msg.senderId !== CURRENT_USER_ID && !msg.isRead) {
         socket.emit("message-read", {
           messageId: msg.id,
         });
@@ -71,18 +63,17 @@ const CommunityPage = () => {
   }, [messages]);
 
   useEffect(() => {
-
     const handleMessageRead = ({ messageId }: { messageId: string }) => {
-      console.log("message read event hit on message id", messageId)
-      setMessages(prev =>
-        prev.map(msg =>
+      console.log("message read event hit on message id", messageId);
+      setMessages((prev) =>
+        prev.map((msg) =>
           msg.id === String(messageId)
             ? {
-              ...msg,
-              isRead: true,
-            }
-            : msg
-        )
+                ...msg,
+                isRead: true,
+              }
+            : msg,
+        ),
       );
     };
 
@@ -90,64 +81,61 @@ const CommunityPage = () => {
 
     return () => {
       socket.off("message-read", handleMessageRead);
-    }
-
+    };
   }, []);
   useEffect(() => {
-
-    const handleDelivered = ({
-      messageId,
-    }: {
-      messageId: number;
-    }) => {
-
-      setMessages(prev =>
-        prev.map(msg =>
+    const handleDelivered = ({ messageId }: { messageId: number }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
           String(msg.id) === String(messageId)
             ? {
-              ...msg,
-              isDelivered: true,
-            }
-            : msg
-        )
+                ...msg,
+                isDelivered: true,
+              }
+            : msg,
+        ),
       );
-
     };
 
-    socket.on(
-      "message-delivered",
-      handleDelivered
-    );
+    socket.on("message-delivered", handleDelivered);
 
     return () => {
-      socket.off(
-        "message-delivered",
-        handleDelivered
-      );
+      socket.off("message-delivered", handleDelivered);
     };
-
   }, []);
   // receive messages ->
   useEffect(() => {
     const handleReceiveMessage = (msg: any) => {
-      console.log("received msg :", msg)
+      console.log("received msg :", msg);
       // if (String(msg.community_id) !== String(selectedCommunity?.id)) {
       //   return;
       // }
       const message: CommunityMessage = {
         id: String(msg.id),
+
         sessionId: msg.session_id ? String(msg.session_id) : null,
+
         communityId: msg.community_id ? String(msg.community_id) : null,
+
         senderId: String(msg.sender_id),
-        content: msg.content,
+
+        content: msg.content || "",
+
+        messageType: msg.message_type || "text",
+
+        mediaUrl: msg.media_url || null,
+
+        mediaName: msg.media_name || null,
+
         createdAt: msg.created_at,
         updatedAt: msg.updated_at,
+
         name: msg.name,
         avatar: msg.avatar,
         email: msg.email,
 
         isDelivered: msg.is_delivered,
-        isRead: msg.is_read
+        isRead: msg.is_read,
       };
 
       socket.emit("message-delivered", {
@@ -165,31 +153,49 @@ const CommunityPage = () => {
     const fetchMessages = async () => {
       try {
         if (!selectedCommunity) return;
-        console.log("selected community:", selectedCommunity.id)
+        console.log("selected community:", selectedCommunity.id);
 
-        const msg = await axios.get(`${API}/api/communities/${selectedCommunity.id}/messages`, {
-          withCredentials: true
-        });
+        const msg = await axios.get(
+          `${API}/api/communities/${selectedCommunity.id}/messages`,
+          {
+            withCredentials: true,
+          },
+        );
 
-        console.log(msg.data)
-        const messages: CommunityMessage[] = msg.data?.data?.map((msg: any) => ({
+        console.log(msg.data);
+        const messages: CommunityMessage[] = msg.data.data.map((msg: any) => ({
           id: String(msg.id),
+
           sessionId: msg.session_id ? String(msg.session_id) : null,
+
           communityId: msg.community_id ? String(msg.community_id) : null,
+
           senderId: String(msg.sender_id),
-          content: msg.content,
+
+          content: msg.content || "",
+
+          messageType: msg.message_type || "text",
+
+          mediaUrl: msg.media_url || null,
+
+          mediaName: msg.media_name || null,
+
           createdAt: msg.created_at,
+
           updatedAt: msg.updated_at,
+
           name: msg.name,
+
           avatar: msg.avatar,
+
           email: msg.email,
 
           isDelivered: msg.is_delivered,
-          isRead: msg.is_read
+
+          isRead: msg.is_read,
         }));
         setMessages(messages);
         socket.emit("join-community", selectedCommunity.id);
-
       } catch (err) {
         console.error(err);
       }
@@ -206,7 +212,45 @@ const CommunityPage = () => {
     setShowCreate(false);
     setSnackbarOpen(true);
   };
+  const handleSendMedia = async (file: File, caption: string) => {
+    if (!selectedCommunity) return;
 
+    try {
+      const formData = new FormData();
+
+      formData.append("media", file);
+
+      const response = await axios.post(
+        `${API}/api/communities/${selectedCommunity.id}/media`,
+        formData,
+        {
+          withCredentials: true,
+        },
+      );
+
+      const media = response.data.data;
+
+      socket.emit("send-message", {
+        type: "community",
+
+        sessionId: selectedCommunity.id,
+
+        content: caption,
+
+        messageType: media.messageType,
+
+        mediaUrl: media.mediaUrl,
+
+        mediaName: media.mediaName,
+
+        mediaMimeType: media.mediaMimeType,
+
+        mediaSize: media.mediaSize,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
   return (
     <Box
       sx={{
@@ -221,9 +265,7 @@ const CommunityPage = () => {
         loading={loading}
         showCreate={showCreate}
         onSelectCommunity={setSelectedCommunity}
-        onToggleCreateCommunity={() =>
-          setShowCreate((prev) => !prev)
-        }
+        onToggleCreateCommunity={() => setShowCreate((prev) => !prev)}
       />
 
       <Box
@@ -269,12 +311,15 @@ const CommunityPage = () => {
               otherUser={{
                 name: selectedCommunity.name || "Loading...",
                 role: "click for more info",
-                avatarUrl: selectedCommunity.avatar
+                avatarUrl: selectedCommunity.avatar,
               }}
               onClick={() => setShowDashboard(true)}
             />
             {showDashboard ? (
-              <CommunityDashboard community={selectedCommunity} onBack={() => setShowDashboard(false)} />
+              <CommunityDashboard
+                community={selectedCommunity}
+                onBack={() => setShowDashboard(false)}
+              />
             ) : (
               <CommunityChatWindow
                 messages={messages}
@@ -283,19 +328,21 @@ const CommunityPage = () => {
               />
             )}
 
+            {!showDashboard && (
+              <MessageInput
+                onSend={(content) => {
+                  if (!selectedCommunity) return;
 
-            {!showDashboard && <MessageInput
-              onSend={(content) => {
-                if (!selectedCommunity) return;
-
-                socket.emit("send-message", {
-                  type: "community",
-                  sessionId: selectedCommunity.id,
-                  content,
-                });
-              }}
-              disabled={false}
-            />}
+                  socket.emit("send-message", {
+                    type: "community",
+                    sessionId: selectedCommunity.id,
+                    content,
+                  });
+                }}
+                onSendMedia={handleSendMedia}
+                disabled={false}
+              />
+            )}
           </Box>
         ) : (
           <Box

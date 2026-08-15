@@ -6,234 +6,288 @@ import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useState } from "react";
 import type { Session } from "../../types/session";
 import { getNextUserById } from "../../services/user.service";
-import { io } from 'socket.io-client'
+import { io } from "socket.io-client";
 import { type Message } from "./types";
-import axios from 'axios';
+import axios from "axios";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
-    withCredentials: true,
+  withCredentials: true,
 });
-const user: string | null = localStorage.getItem("user")
-console.log("user :", user)
-let CURRENT_USER_ID: string = ""
+const user: string | null = localStorage.getItem("user");
+console.log("user :", user);
+let CURRENT_USER_ID: string = "";
 if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
-console.log(CURRENT_USER_ID)
-
+console.log(CURRENT_USER_ID);
 
 const ChatPage = () => {
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [chatUser, setChatUser] = useState<any>(null);
-    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatUser, setChatUser] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
-    const connected = true;
+  const connected = true;
 
-    const loading = false;
+  const loading = false;
 
-    useEffect(() => {
-        messages.forEach((msg) => {
-            if (
-                msg.senderId !== CURRENT_USER_ID &&
-                !msg.isRead
-            ) {
-                socket.emit("message-read", {
-                    messageId: msg.id,
-                });
-            }
+  useEffect(() => {
+    messages.forEach((msg) => {
+      if (msg.senderId !== CURRENT_USER_ID && !msg.isRead) {
+        socket.emit("message-read", {
+          messageId: msg.id,
         });
-    }, [messages]);
+      }
+    });
+  }, [messages]);
 
-    useEffect(() => {
+  useEffect(() => {
+    const handleMessageRead = ({ messageId }: { messageId: string }) => {
+      console.log("message read event hit on message id", messageId);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === String(messageId)
+            ? {
+                ...msg,
+                isRead: true,
+              }
+            : msg,
+        ),
+      );
+    };
 
-        const handleMessageRead = ({ messageId }: { messageId: string }) => {
-            console.log("message read event hit on message id", messageId)
-            setMessages(prev =>
-                prev.map(msg =>
-                    msg.id === String(messageId)
-                        ? {
-                            ...msg,
-                            isRead: true,
-                        }
-                        : msg
-                )
-            );
-        };
+    socket.on("message-read", handleMessageRead);
 
-        socket.on("message-read", handleMessageRead);
+    return () => {
+      socket.off("message-read", handleMessageRead);
+    };
+  }, []);
+  useEffect(() => {
+    const handleDelivered = ({ messageId }: { messageId: string }) => {
+      console.log("message delivered event hit on message id", messageId);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          String(msg.id) === String(messageId)
+            ? {
+                ...msg,
+                isDelivered: true,
+              }
+            : msg,
+        ),
+      );
+    };
 
-        return () => {
-            socket.off("message-read", handleMessageRead);
-        }
+    socket.on("message-delivered", handleDelivered);
 
-    }, []);
-    useEffect(() => {
-        const handleDelivered = ({ messageId }: { messageId: string }) => {
-            console.log("message delivered event hit on message id", messageId)
-            setMessages(prev =>
-                prev.map(msg =>
-                    String(msg.id) === String(messageId)
-                        ? {
-                            ...msg,
-                            isDelivered: true,
-                        }
-                        : msg
-                )
-            );
+    return () => {
+      socket.off("message-delivered", handleDelivered);
+    };
+  }, []);
 
-        };
+  useEffect(() => {
+    const handleReceiveMessage = (msg: any) => {
+      const message: Message = {
+        id: String(msg.id),
+        sessionId: String(msg.session_id),
+        senderId: String(msg.sender_id),
+        content: msg.content,
 
-        socket.on("message-delivered", handleDelivered);
+        messageType: msg.message_type || "text",
 
-        return () => {
-            socket.off("message-delivered", handleDelivered);
-        };
-    }, []);
+        mediaUrl: msg.media_url || undefined,
+        mediaName: msg.media_name || undefined,
+        mediaMimeType: msg.media_mime_type || undefined,
+        mediaSize: msg.media_size ? Number(msg.media_size) : undefined,
 
-    useEffect(() => {
+        createdAt: msg.created_at,
+        isDelivered: msg.is_delivered,
+        isRead: msg.is_read,
+      };
 
-        const handleReceiveMessage = (msg: any) => {
+      console.log(message.createdAt);
+      console.log(typeof message.createdAt);
+      // console.log(message.createdAt instanceof Date);
+      setMessages((prev) => [...prev, message]);
+      if (message.senderId !== CURRENT_USER_ID) {
+        socket.emit("message-delivered", {
+          messageId: message.id,
+        });
+      }
+    };
+    socket.on("receive-message", handleReceiveMessage);
+    return () => {
+      socket.off("receive-message", handleReceiveMessage);
+    };
+  }, []);
+  // Function to handle session selection
 
-            const message: Message = {
-                id: String(msg.id),
-                sessionId: String(msg.session_id),
-                senderId: String(msg.sender_id),
-                content: msg.content,
-                createdAt: msg.created_at,
-                isDelivered: msg.is_delivered,
-                isRead: msg.is_read
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        if (!selectedSession) return;
+        console.log("selected session:", selectedSession.id);
 
-            };
-            console.log(message.createdAt);
-            console.log(typeof message.createdAt);
-            // console.log(message.createdAt instanceof Date);
-            setMessages((prev) => [...prev, message]);
-            if (message.senderId !== CURRENT_USER_ID) {
-                socket.emit("message-delivered", {
-                    messageId: message.id,
-                });
-            }
-        };
-        socket.on("receive-message", handleReceiveMessage);
-        return () => {
-            socket.off("receive-message", handleReceiveMessage);
-        };
-    }, []);
-    // Function to handle session selection
+        const msg = await axios.get(
+          `${API}/api/sessions/${selectedSession.id}/messages`,
+          {
+            withCredentials: true,
+          },
+        );
 
-    useEffect(() => {
-        const fetchSessions = async () => {
-            try {
-                if (!selectedSession) return;
-                console.log("selected session:", selectedSession.id)
+        console.log(msg.data);
+        const messages: Message[] = msg.data?.data?.map((msg: any) => ({
+          id: String(msg.id),
+          sessionId: String(msg.session_id),
+          senderId: String(msg.sender_id),
+          content: msg.content,
 
-                const msg = await axios.get(`${API}/api/sessions/${selectedSession.id}/messages`, {
-                    withCredentials: true
-                });
+          messageType: msg.message_type || "text",
 
-                console.log(msg.data)
-                const messages: Message[] = msg.data?.data?.map((msg: any) => ({
-                    id: String(msg.id),
-                    sessionId: String(msg.session_id),
-                    senderId: String(msg.sender_id),
-                    content: msg.content,
-                    createdAt: msg.created_at,
-                    isRead: msg.is_read,
-                    isDelivered: msg.is_delivered,
-                    isDeleted: msg.is_deleted,
-                }));
+          mediaUrl: msg.media_url || undefined,
+          mediaName: msg.media_name || undefined,
+          mediaMimeType: msg.media_mime_type || undefined,
+          mediaSize: msg.media_size ? Number(msg.media_size) : undefined,
 
-                setMessages(messages);
-                socket.emit("join-session", selectedSession.id);
-                const res = await getNextUserById(selectedSession.helper_id, selectedSession.requester_id);
-                setChatUser(res);
-                console.log("Fetched user:", res);
+          createdAt: msg.created_at,
+          isRead: msg.is_read,
+          isDelivered: msg.is_delivered,
+        }));
 
-            } catch (err) {
-                console.error(err);
-            }
-        };
+        setMessages(messages);
+        socket.emit("join-session", selectedSession.id);
+        const res = await getNextUserById(
+          selectedSession.helper_id,
+          selectedSession.requester_id,
+        );
+        setChatUser(res);
+        console.log("Fetched user:", res);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-        fetchSessions();
-    }, [selectedSession]);
+    fetchSessions();
+  }, [selectedSession]);
 
+  const handleSendMedia = async (file: File, caption: string) => {
+    if (!selectedSession) return;
 
-    return (
-        <Box
+    try {
+      const formData = new FormData();
+
+      formData.append("media", file);
+
+      const response = await axios.post(
+        `${API}/api/sessions/${selectedSession.id}/media`,
+        formData,
+        {
+          withCredentials: true,
+        },
+      );
+
+      console.log("Media upload response:", response.data);
+
+      const media = response.data?.data;
+
+      if (!media?.mediaUrl) {
+        throw new Error("Media URL was not returned by the server");
+      }
+
+      socket.emit("send-message", {
+        type: "session",
+
+        sessionId: selectedSession.id,
+
+        content: caption,
+
+        messageType: media.messageType,
+
+        mediaUrl: media.mediaUrl,
+
+        mediaName: media.mediaName,
+
+        mediaMimeType: media.mediaMimeType,
+
+        mediaSize: media.mediaSize,
+      });
+
+      console.log("Media message sent successfully");
+    } catch (error) {
+      console.error("Failed to send media:", error);
+    }
+  };
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        height: "calc(100vh - 64px)",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
+      <SessionSidebar onSelectSession={setSelectedSession} />
+
+      <Box
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          overflow: "hidden",
+        }}
+      >
+        {selectedSession ? (
+          <Box
             sx={{
-                display: "flex",
-                height: "calc(100vh - 64px)",
-                minHeight: 0,
-                overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              flex: 1,
+              minHeight: 0,
+              overflow: "hidden",
             }}
-        >
-            <SessionSidebar
-                onSelectSession={setSelectedSession}
+          >
+            <ChatHeader
+              otherUser={{
+                name: chatUser?.name || "Loading...",
+                role: chatUser?.role || "Loading...",
+                avatarUrl: chatUser?.avatar,
+              }}
             />
 
-            <Box
-                sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    minHeight: 0,
-                    display: "flex",
-                    overflow: "hidden",
-                }}
-            >
-                {selectedSession ? (
-                    <Box
-                        sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            width: "100%",
-                            flex: 1,
-                            minHeight: 0,
-                            overflow: "hidden",
-                        }}
-                    >
-                        <ChatHeader
-                            otherUser={{
-                                name: chatUser?.name || "Loading...",
-                                role: chatUser?.role || "Loading...",
-                                avatarUrl: chatUser?.avatar
-                            }}
-                        />
+            <ChatWindow
+              messages={messages}
+              loading={loading}
+              currentUserId={CURRENT_USER_ID}
+            />
 
-                        <ChatWindow
-                            messages={messages}
-                            loading={loading}
-                            currentUserId={CURRENT_USER_ID}
-                        />
+            <MessageInput
+              onSend={(content) => {
+                if (!selectedSession) return;
 
-                        <MessageInput
-                            onSend={(content) => {
-                                if (!selectedSession) return;
-
-                                socket.emit("send-message", {
-                                    type: "session",
-                                    sessionId: selectedSession.id,
-                                    content,
-                                });
-                            }}
-                            disabled={!connected}
-                        />
-                    </Box>
-                ) : (
-                    <Box
-                        sx={{
-                            flex: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            minHeight: 0,
-                        }}
-                    >
-                        <Typography variant="h5">
-                            Select a conversation
-                        </Typography>
-                    </Box>
-                )}
-            </Box>
-        </Box>
-    );
+                socket.emit("send-message", {
+                  type: "session",
+                  sessionId: selectedSession.id,
+                  content,
+                });
+              }}
+              onSendMedia={handleSendMedia}
+              disabled={!connected}
+            />
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 0,
+            }}
+          >
+            <Typography variant="h5">Select a conversation</Typography>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
 };
 
 export default ChatPage;
