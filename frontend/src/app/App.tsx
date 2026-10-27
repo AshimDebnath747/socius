@@ -1,11 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Snackbar, Alert, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { io } from 'socket.io-client';
 import Navbar from "../components/layout/Navbar";
-import WelcomePage from "../features/home/WelcomePage";
+import { socket } from "../socket";
 import FeedPage from "../features/posts/pages/FeedPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
@@ -18,17 +17,16 @@ import axios from 'axios';
 import Loader from "../components/loader";
 import CommunityInfo from "../features/communities/pages/communityInfo";
 import UserProfile from "../features/profile/UserProfile";
+import MeetingPage from "../features/meeting/MeetingPage";
 const API = import.meta.env.VITE_BACKEND_URL;
-const socket = io(API, {
-  withCredentials: true
-});
+
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
   const [notification, setNotification] = useState<{
     open: boolean;
-    type: "session" | "community" | null;
+    type: "session" | "community" | "meeting" | null;
     sessionId: number | null;
     communityId: number | null;
     message: string;
@@ -118,6 +116,22 @@ const App = () => {
     };
   }, []);
   useEffect(() => {
+    const handleIncomingMeeting = (data: { sessionId: number }) => {
+      setNotification({
+        open: true,
+        type: "meeting",
+        sessionId: data.sessionId,
+        communityId: null,
+        message: "Your help partner started a video call.",
+      });
+    };
+
+    socket.on("incoming-meeting", handleIncomingMeeting);
+    return () => {
+      socket.off("incoming-meeting", handleIncomingMeeting);
+    };
+  }, []);
+  useEffect(() => {
     const onConnect = () => {
       console.log("Connected:", socket.id);
     };
@@ -184,7 +198,7 @@ const App = () => {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <Alert
-          severity="success"
+          severity={notification.type === "meeting" ? "info" : "success"}
           sx={{
             width: 500,
             fontSize: "1rem",
@@ -199,15 +213,16 @@ const App = () => {
               color="inherit"
               onClick={() => {
                 if (notification.sessionId) {
-                  navigate(`/chat`);
+                  navigate(notification.type === "meeting" ? `/meeting/${notification.sessionId}` : `/chat`);
                 }
+                setNotification((prev) => ({ ...prev, open: false }));
               }}
             >
-              {notification.message}
+              {notification.type === "meeting" ? "Join call" : notification.message}
             </Button>
           }
         >
-          {notification.type}
+          {notification.type === "meeting" ? "Meeting invite" : notification.type}
         </Alert>
       </Snackbar>
       <Navbar
@@ -262,6 +277,10 @@ const App = () => {
             path="/explorecommunities/:slug"
             element={isAuth ? <CommunityInfo /> : <LoginPage />}
           />
+          <Route
+    path="/meeting/:roomId"
+    element={isAuth ? <MeetingPage /> : <LoginPage />}
+/>
         </Routes>
 
       </Box>

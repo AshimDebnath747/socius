@@ -62,7 +62,7 @@ export default function CreateHelpRequestForm() {
     }
     try {
       const API = import.meta.env.VITE_BACKEND_URL;
-      const res = await axios.post(`${API}/api/help-requests`, payload, {
+      await axios.post(`${API}/api/help-requests`, payload, {
         withCredentials: true,
       });
       //   setFormData({

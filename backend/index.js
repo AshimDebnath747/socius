@@ -23,7 +23,12 @@ const app = express();
 app.use(passport.initialize());
 app.use(express.json())
 app.use(cors({
-    origin: process.env.FEV, // frontend URL
+    origin: [
+        process.env.FEV,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://192.168.29.91:5173",
+    ].filter(Boolean),
     credentials: true,               // <-- allow cookies
 }));
 console.log("enfdd:", process.env.FEV)
@@ -48,7 +53,7 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: true,
         credentials: true
     },
     pingTimeout: 60000,   // 60 seconds to wait for pong
@@ -58,4 +63,4 @@ const io = new Server(server, {
 app.set("io", io);
 initSocket(io);
 const port = process.env.PORT || 8000
-server.listen(port, () => console.log('Server running on http://localhost:8000'));
+server.listen(port, "0.0.0.0", () => console.log(`Server running on port ${port}`));

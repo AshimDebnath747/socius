@@ -40,16 +40,16 @@ export const helpRequestAccept = async (helpRequestId, helperId, mode) => {
     return rows1[0];
 };
 
-export const getSessionById = async (id) => {
-    const query = "SELECT * FROM session WHERE id=$1";
-
-    const { rows } = await pool.query(query, [id]);
+export const getSessionById = async (id, userId) => {
+    const { rows } = await pool.query(
+        `SELECT * FROM session
+         WHERE id = $1 AND (requester_id = $2 OR helper_id = $2)`,
+        [id, userId],
+    );
 
     if (!rows[0]) {
-        throw new Error("Id does not match any session!");
+        throw new Error("Session not found or you are not a participant.");
     }
-
-    console.log(rows);
     return rows[0];
 };
 

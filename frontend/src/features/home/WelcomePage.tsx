@@ -72,7 +72,7 @@ const WelcomePage = () => {
 
         <Grid container spacing={4}>
           {features.map((feature, index) => (
-            <Grid item xs={12} md={4} key={index}>
+            <Grid size={{ xs: 12, md: 4 }} key={index}>
               <Card sx={{ height: "100%" }}>
                 <CardContent>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>

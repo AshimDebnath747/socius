@@ -1,7 +1,7 @@
 import ChatHeader from "./components/ChatHeader";
 import ChatWindow from "./components/ChatWindow";
 import MessageInput from "./components/MessageInput";
-import { Box, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useState } from "react";
 import type { Session } from "../../types/session";
@@ -9,6 +9,8 @@ import { getNextUserById } from "../../services/user.service";
 import { io } from "socket.io-client";
 import { type Message } from "./types";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -20,6 +22,7 @@ if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
 console.log(CURRENT_USER_ID);
 
 const ChatPage = () => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -244,13 +247,26 @@ const ChatPage = () => {
               overflow: "hidden",
             }}
           >
-            <ChatHeader
-              otherUser={{
-                name: chatUser?.name || "Loading...",
-                role: chatUser?.role || "Loading...",
-                avatarUrl: chatUser?.avatar,
-              }}
-            />
+            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "#fff", borderBottom: "1px solid #e5e7eb", pr: 2 }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <ChatHeader
+                  otherUser={{
+                    name: chatUser?.name || "Loading...",
+                    role: chatUser?.role || "Loading...",
+                    avatarUrl: chatUser?.avatar,
+                  }}
+                />
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<VideoCallIcon />}
+                disabled={selectedSession.status !== "active" || selectedSession.mode !== "call"}
+                onClick={() => navigate(`/meeting/${selectedSession.id}`)}
+                sx={{ flexShrink: 0, ml: 1 }}
+              >
+                Start video call
+              </Button>
+            </Box>
 
             <ChatWindow
               messages={messages}

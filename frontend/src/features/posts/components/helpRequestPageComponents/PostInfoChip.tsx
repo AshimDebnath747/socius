@@ -42,6 +42,7 @@ const PostInfoChips = ({
     const getModeIcon = () => {
         switch (preferredMode.toLowerCase()) {
             case "chat":
+            case "text":
                 return <ChatIcon />;
             case "call":
                 return <CallIcon />;

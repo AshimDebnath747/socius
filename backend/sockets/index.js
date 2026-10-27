@@ -2,6 +2,7 @@ import { verifySocketAuth } from "./middleware.js";
 import { registerMessageEvents } from "./message.socket.js";
 import { registerSessionEvents } from "./session.socket.js";
 import { onlineUsers } from "./manageOnline.js";
+import { registerMeetingEvents } from "./meeting.socket.js";
 let _io
 export const initSocket = (io) => {
     _io = io
@@ -31,7 +32,7 @@ export const initSocket = (io) => {
         // Register feature modules
         registerMessageEvents(io, socket);
         registerSessionEvents(io, socket);
-
+        registerMeetingEvents(io, socket);
         socket.on("disconnect", (reason) => {
             console.log("Disconnected:", socket.id, reason);
             const sockets = onlineUsers.get(userId);

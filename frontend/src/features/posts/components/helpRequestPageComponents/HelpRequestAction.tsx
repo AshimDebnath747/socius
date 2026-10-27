@@ -15,9 +15,9 @@ import CallIcon from "@mui/icons-material/Call";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 
 interface Props {
-    mode: "call" | "chat";
+    mode: "call" | "text";
     setMode: React.Dispatch<
-        React.SetStateAction<"call" | "chat">
+        React.SetStateAction<"call" | "text">
     >;
     onAccept: () => void;
     loading?: boolean;
@@ -64,18 +64,18 @@ const HelpRequestAction = ({
                             setMode(
                                 e.target.value as
                                 | "call"
-                                | "chat"
+                                | "text"
                             )
                         }
                     >
-                        <MenuItem value="chat">
+                        <MenuItem value="text">
                             <Stack
                                 direction="row"
                                 spacing={1}
                                 alignItems="center"
                             >
                                 <ChatIcon />
-                                <Typography>Chat</Typography>
+                                <Typography>Text chat</Typography>
                             </Stack>
                         </MenuItem>
 
@@ -86,7 +86,7 @@ const HelpRequestAction = ({
                                 alignItems="center"
                             >
                                 <CallIcon />
-                                <Typography>Voice Call</Typography>
+                                <Typography>Video call</Typography>
                             </Stack>
                         </MenuItem>
                     </Select>

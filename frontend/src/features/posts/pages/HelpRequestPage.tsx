@@ -21,7 +21,7 @@ const PostPage = () => {
 
   const [request, setRequest] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<"call" | "chat">("call");
+  const [mode, setMode] = useState<"call" | "text">("call");
 
   useEffect(() => {
     const fetchRequest = async () => {

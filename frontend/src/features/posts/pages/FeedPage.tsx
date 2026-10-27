@@ -1,10 +1,9 @@
-import { Container, Tooltip, Box } from "@mui/material";
+import { Container } from "@mui/material";
 import { useEffect, useState } from "react";
 import type { Post, HelpRequestResponse } from "../types";
 import Loader from "../../../components/loader";
 import { useNavigate } from "react-router-dom";
 import api from "../../../lib/axios";
-import FeedHeader from "../components/FeedHeader";
 import FeedSearchBar from "../components/FeedSearchBar";
 import CreateHelpFab from "../components/CreateHelpFab";
 import FeedList from "../components/FeedList";

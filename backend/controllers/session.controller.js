@@ -40,7 +40,7 @@ export const getSessionByIdController = async (req, res) => {
     try {
         const { id } = req.params
 
-        const result = await getSessionById(id)
+        const result = await getSessionById(id, req.user.id)
         return res.status(200).json({
             success: true,
             message: "session fetched successfully",
@@ -49,7 +49,7 @@ export const getSessionByIdController = async (req, res) => {
 
     } catch (err) {
         console.log("message:", err.message)
-        return res.status(200).json({
+        return res.status(403).json({
             success: false,
             message: "session could not be fetched!",
             data: err.message
