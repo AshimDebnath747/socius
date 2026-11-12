@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Avatar,
     Box,
     Button,
-    Card,
-    CardContent,
     Chip,
-    Collapse,
+    CircularProgress,
     Divider,
     Grid,
     List,
@@ -17,20 +15,15 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { CircularProgress } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import GroupIcon from "@mui/icons-material/Group";
 import LockIcon from "@mui/icons-material/Lock";
 import PublicIcon from "@mui/icons-material/Public";
-import ForumIcon from "@mui/icons-material/Forum";
 import SettingsIcon from "@mui/icons-material/Settings";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import { type Community } from "../../../types/community";
 import { type JoinRequest } from "../../posts/types";
-import { useEffect } from "react";
 import axios from "axios";
 import CommunityMembers from "./communityMembersDashboard";
 interface Props {
@@ -46,7 +39,7 @@ const CommunityDashboard = ({
     const [loadingRequests, setLoadingRequests] = useState(false);
     const [activeSection, setActiveSection] = useState<
         "overview" | "requests" | "members" | "posts" | "settings"
-    >("overview");
+    >("members");
     const [role, setRole] = useState<string>("member");
     useEffect(() => {
         const fetchRole = async () => {
@@ -143,332 +136,366 @@ const CommunityDashboard = ({
                 overflow: "hidden",
             }}
         >
-            {/* Back */}
-            <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={onBack}
-                sx={{ mb: 3 }}
-            >
-                Back to Chat
-            </Button>
-
-            {/* Header */}
-            <Paper
-                elevation={4}
-                sx={{
-                    p: 4,
-                    borderRadius: "10px",
-                    mb: 4,
-                }}
-            >
-                <Stack
-                    direction={{
-                        xs: "column",
-                        md: "row",
-                    }}
-                    spacing={3}
-                >
-                    <Avatar
-                        src={community.avatar ?? undefined}
-                        sx={{
-                            width: 110,
-                            height: 110,
-                            fontSize: 42,
-                        }}
-                    >
-                        {community.name[0]}
-                    </Avatar>
-
-                    <Box flex={1}>
-                        <Typography
-                            variant="h4"
-                            fontWeight={700}
-                        >
-                            {community.name}
-                        </Typography>
-
-                        <Typography
-                            color="text.secondary"
-                            mb={2}
-                        >
-                            @{community.slug}
-                        </Typography>
-
-                        <Chip
-                            icon={
-                                community.isPrivate ? (
-                                    <LockIcon />
-                                ) : (
-                                    <PublicIcon />
-                                )
-                            }
-                            color={
-                                community.isPrivate
-                                    ? "warning"
-                                    : "success"
-                            }
-                            label={
-                                community.isPrivate
-                                    ? "Private"
-                                    : "Public"
-                            }
-                        />
-
-                        <Typography
-                            mt={3}
-                            color="text.secondary"
-                        >
-                            {community.description}
-                        </Typography>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        <Typography>
-                            <b>Rules</b>
-                        </Typography>
-
-                        <Typography color="text.secondary">
-                            {community.rules}
-                        </Typography>
-                    </Box>
-                </Stack>
-            </Paper>
-
-            {/* Dashboard Cards */}
+            {/* Top Bar with Back Button directly beneath navbar */}
             <Box
                 sx={{
-                    flex: 1,
-                    overflowY: "auto",
-                    minHeight: 0,
-                    pr: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    bgcolor: "background.paper",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                    px: { xs: 1.5, sm: 2 },
+                    py: 1,
+                    flexShrink: 0,
                 }}
             >
+                <Button
+                    startIcon={<ArrowBackIcon />}
+                    onClick={onBack}
+                    variant="text"
+                    size="small"
+                    sx={{
+                        textTransform: "none",
+                        fontWeight: 600,
+                        color: "text.primary",
+                        py: 0.5,
+                        px: 1,
+                        borderRadius: "8px",
+                    }}
+                >
+                    Back to Chat
+                </Button>
+            </Box>
+
+            {/* Main 2-Column Split: Left (Info + Buttons) & Right (Member List) */}
+            <Box sx={{ flex: 1, minHeight: 0, p: { xs: 1.5, sm: 2 }, overflow: "hidden" }}>
                 <Grid
                     container
-                    spacing={3}
-                    mb={4}
+                    spacing={2}
+                    sx={{
+                        height: "100%",
+                        minHeight: 0,
+                    }}
                 >
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Card
-                            onClick={() =>
-                                setActiveSection((prev) =>
-                                    prev === "members" ? "overview" : "members"
-                                )
-                            }
-                            sx={{
-                                cursor: "pointer",
-                                transition: ".25s",
-                                "&:hover": {
-                                    transform: "translateY(-5px)",
-                                    boxShadow: 8,
-                                },
-                            }}
-                        >
-                            <CardContent>
-                                <GroupIcon
-                                    color="primary"
-                                    fontSize="large"
-                                />
-
-                                <Typography
-                                    variant="h6"
-                                    mt={2}
-                                >
-                                    Members
-                                </Typography>
-
-                                <Typography color="text.secondary">
-                                    Manage members
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Card onClick={() =>
-                            setActiveSection((prev) =>
-                                prev === "requests" ? "overview" : "requests"
-                            )
-                        }
-                            sx={{
-                                cursor: "pointer",
-                                transition: ".25s",
-                                "&:hover": {
-                                    transform: "translateY(-5px)",
-                                    boxShadow: 8,
-                                },
-                            }}
-                        >
-                            <CardContent>
-                                <Stack
-                                    direction="row"
-                                    justifyContent="space-between"
-                                >
-                                    <GroupAddIcon
-                                        color="primary"
-                                        fontSize="large"
-                                    />
-                                    {activeSection === "members" ? (
-                                        <ExpandLessIcon />
-                                    ) : (
-                                        <ExpandMoreIcon />
-                                    )}
-
-                                    {activeSection === "requests" ? (
-                                        <ExpandLessIcon />
-                                    ) : (
-                                        <ExpandMoreIcon />
-                                    )}
-                                </Stack>
-
-                                <Typography
-                                    variant="h6"
-                                    mt={2}
-                                >
-                                    Join Requests
-                                </Typography>
-
-                                <Typography color="text.secondary">
-                                    {requests.length} Pending
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Card>
-                            <CardContent>
-                                <ForumIcon
-                                    color="primary"
-                                    fontSize="large"
-                                />
-
-                                <Typography
-                                    variant="h6"
-                                    mt={2}
-                                >
-                                    Posts
-                                </Typography>
-
-                                <Typography color="text.secondary">
-                                    Community posts
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Card>
-                            <CardContent>
-                                <SettingsIcon
-                                    color="primary"
-                                    fontSize="large"
-                                />
-
-                                <Typography
-                                    variant="h6"
-                                    mt={2}
-                                >
-                                    Settings
-                                </Typography>
-
-                                <Typography color="text.secondary">
-                                    Community settings
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
-
-                {/* Join Requests */}
-                <Collapse in={activeSection === "members"}>
-                    <CommunityMembers communityId={community.id} />
-                </Collapse>
-
-                <Collapse in={activeSection === "requests"}>
+                {/* Left Column: Info card on top, Buttons on bottom */}
+                <Grid
+                    size={{ xs: 12, md: 5 }}
+                    sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                        height: "100%",
+                        minHeight: 0,
+                        overflowY: "auto",
+                        pr: { md: 0.5 },
+                    }}
+                >
+                    {/* Top Card: Icon, Name, Slug, Badge, Description, Rules */}
                     <Paper
-                        elevation={3}
+                        elevation={0}
                         sx={{
                             p: 3,
-                            borderRadius: "10px",
+                            borderRadius: "14px",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
                         }}
                     >
-                        <Typography
-                            variant="h5"
-                            gutterBottom
-                        >
-                            Pending Join Requests
-                        </Typography>
-
-                        <Divider sx={{ mb: 2 }} />
-
-                        {loadingRequests ? (
-                            <Box display="flex" justifyContent="center" py={4}>
-                                <CircularProgress />
-                            </Box>
-                        ) : requests.length === 0 ? (
-                            <Typography
-                                color="text.secondary"
+                        <Stack direction="row" spacing={2.5} alignItems="flex-start">
+                            <Avatar
+                                src={community.avatar ?? undefined}
+                                sx={{
+                                    width: 72,
+                                    height: 72,
+                                    fontSize: 32,
+                                    fontWeight: 700,
+                                    bgcolor: "primary.main",
+                                    flexShrink: 0,
+                                }}
                             >
-                                No pending requests.
+                                {community.name[0]}
+                            </Avatar>
+
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography variant="h5" fontWeight={700} noWrap>
+                                    {community.name}
+                                </Typography>
+
+                                <Typography color="text.secondary" variant="body2" sx={{ mb: 1 }} noWrap>
+                                    @{community.slug}
+                                </Typography>
+
+                                <Chip
+                                    icon={community.isPrivate ? <LockIcon sx={{ fontSize: "13px !important" }} /> : <PublicIcon sx={{ fontSize: "13px !important" }} />}
+                                    color={community.isPrivate ? "warning" : "success"}
+                                    size="small"
+                                    variant="outlined"
+                                    label={community.isPrivate ? "Private" : "Public"}
+                                    sx={{ height: 22, fontSize: 11, fontWeight: 600 }}
+                                />
+                            </Box>
+                        </Stack>
+
+                        <Divider sx={{ my: 2.5 }} />
+
+                        {/* Description */}
+                        <Box>
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    textTransform: "uppercase",
+                                    fontWeight: 700,
+                                    letterSpacing: "0.06em",
+                                    color: "text.secondary",
+                                    display: "block",
+                                    mb: 0.75,
+                                }}
+                            >
+                                Description
                             </Typography>
-                        ) : (
-                            <List>
-                                {(role == "owner" || role == "moderator") && requests.map((request) => (
-                                    <ListItem
-                                        key={request.id}
-                                        divider
-                                        secondaryAction={
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                            >
-                                                <Button
-                                                    variant="contained"
-                                                    color="success"
-                                                    onClick={() => handleAccept(request.id)}
-                                                >
-                                                    Accept
-                                                </Button>
 
-                                                <Button
-                                                    variant="outlined"
-                                                    color="error"
-                                                    onClick={() => handleReject(request.id)}
-                                                >
-                                                    Reject
-                                                </Button>
-                                            </Stack>
-                                        }
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: community.description ? "text.primary" : "text.secondary",
+                                    lineHeight: 1.6,
+                                    fontSize: 14,
+                                    fontStyle: community.description ? "normal" : "italic",
+                                    whiteSpace: "pre-wrap",
+                                }}
+                            >
+                                {community.description || "No description provided."}
+                            </Typography>
+                        </Box>
+
+                        {/* Rules (if set) */}
+                        {community.rules?.trim() ? (
+                            <Box sx={{ mt: 2.5, pt: 2, borderTop: "1px dashed", borderColor: "divider" }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        textTransform: "uppercase",
+                                        fontWeight: 700,
+                                        letterSpacing: "0.06em",
+                                        color: "text.secondary",
+                                        display: "block",
+                                        mb: 0.75,
+                                    }}
+                                >
+                                    Rules
+                                </Typography>
+
+                                <Box
+                                    sx={{
+                                        bgcolor: "action.hover",
+                                        p: 1.5,
+                                        borderRadius: "8px",
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                    }}
+                                >
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: "text.secondary",
+                                            whiteSpace: "pre-line",
+                                            lineHeight: 1.6,
+                                            fontSize: 13,
+                                        }}
                                     >
-                                        <ListItemAvatar>
-                                            <Avatar
-                                                src={
-                                                    request.avatar ??
-                                                    undefined
-                                                }
-                                            >
-                                                {request.name[0]}
-                                            </Avatar>
-                                        </ListItemAvatar>
-
-                                        <ListItemText
-                                            primary={request.name}
-                                            secondary={
-                                                <>
-                                                    {request.email}
-                                                    <br />
-                                                    Requested on{" "}
-                                                    {new Date(request.createdAt).toLocaleDateString()}
-                                                </>
-                                            }
-                                        />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        )}
+                                        {community.rules}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ) : null}
                     </Paper>
-                </Collapse>
+
+                    {/* Bottom Card: Buttons (Members, Join Requests, Settings) */}
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            p: 1,
+                            borderRadius: "14px",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                        }}
+                    >
+                        <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
+                            <Button
+                                fullWidth
+                                variant={activeSection === "members" ? "contained" : "text"}
+                                startIcon={<GroupIcon />}
+                                onClick={() => setActiveSection("members")}
+                                size="small"
+                                sx={{
+                                    textTransform: "none",
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    py: 1,
+                                    borderRadius: "10px",
+                                }}
+                            >
+                                Members
+                            </Button>
+
+                            <Button
+                                fullWidth
+                                variant={activeSection === "requests" ? "contained" : "text"}
+                                startIcon={<GroupAddIcon />}
+                                onClick={() => setActiveSection("requests")}
+                                size="small"
+                                color={requests.length > 0 ? "warning" : "primary"}
+                                sx={{
+                                    textTransform: "none",
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    py: 1,
+                                    borderRadius: "10px",
+                                }}
+                            >
+                                Requests {requests.length > 0 ? `(${requests.length})` : ""}
+                            </Button>
+
+                            {(role === "owner" || role === "moderator") && (
+                                <Button
+                                    fullWidth
+                                    variant={activeSection === "settings" ? "contained" : "text"}
+                                    startIcon={<SettingsIcon />}
+                                    onClick={() => setActiveSection("settings")}
+                                    size="small"
+                                    sx={{
+                                        textTransform: "none",
+                                        fontWeight: 600,
+                                        fontSize: 13,
+                                        py: 1,
+                                        borderRadius: "10px",
+                                    }}
+                                >
+                                    Settings
+                                </Button>
+                            )}
+                        </Stack>
+                    </Paper>
+                </Grid>
+
+                {/* Right Column: Member List (or active pane based on bottom buttons) */}
+                <Grid
+                    size={{ xs: 12, md: 7 }}
+                    sx={{
+                        height: "100%",
+                        minHeight: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                    }}
+                >
+                    {activeSection === "members" && (
+                        <Box sx={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+                            <CommunityMembers communityId={community.id} />
+                        </Box>
+                    )}
+
+                    {activeSection === "requests" && (
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: 3,
+                                borderRadius: "14px",
+                                border: "1px solid",
+                                borderColor: "divider",
+                                height: "100%",
+                                overflowY: "auto",
+                                bgcolor: "background.paper",
+                            }}
+                        >
+                            <Typography variant="h5" fontWeight={700} gutterBottom>
+                                Pending Join Requests
+                            </Typography>
+
+                            <Divider sx={{ mb: 2 }} />
+
+                            {loadingRequests ? (
+                                <Box display="flex" justifyContent="center" py={4}>
+                                    <CircularProgress />
+                                </Box>
+                            ) : requests.length === 0 ? (
+                                <Typography color="text.secondary">
+                                    No pending requests.
+                                </Typography>
+                            ) : (
+                                <List>
+                                    {(role === "owner" || role === "moderator") && requests.map((request) => (
+                                        <ListItem
+                                            key={request.id}
+                                            divider
+                                            secondaryAction={
+                                                <Stack direction="row" spacing={1}>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="success"
+                                                        size="small"
+                                                        onClick={() => handleAccept(request.id)}
+                                                    >
+                                                        Accept
+                                                    </Button>
+                                                    <Button
+                                                        variant="outlined"
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => handleReject(request.id)}
+                                                    >
+                                                        Reject
+                                                    </Button>
+                                                </Stack>
+                                            }
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar src={request.avatar ?? undefined}>
+                                                    {request.name[0]}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={request.name}
+                                                secondary={
+                                                    <>
+                                                        {request.email}
+                                                        <br />
+                                                        Requested on {new Date(request.createdAt).toLocaleDateString()}
+                                                    </>
+                                                }
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            )}
+                        </Paper>
+                    )}
+
+                    {activeSection === "settings" && (
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                p: 3,
+                                borderRadius: "14px",
+                                border: "1px solid",
+                                borderColor: "divider",
+                                height: "100%",
+                                overflowY: "auto",
+                                bgcolor: "background.paper",
+                            }}
+                        >
+                            <Typography variant="h5" fontWeight={700} gutterBottom>
+                                Community Settings
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                            <Typography color="text.secondary" variant="body2">
+                                Manage community privacy, slug, and permissions.
+                            </Typography>
+                        </Paper>
+                    )}
+                </Grid>
+            </Grid>
             </Box>
         </Box>
     );

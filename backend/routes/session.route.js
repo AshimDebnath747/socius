@@ -33,6 +33,7 @@ router.post(
 
 //put requests
 router.put("/:id/end", endSessionByIdController)
+router.patch("/:id/end", endSessionByIdController)
 router.put("/:id/cancel", cancelSessionByIdController)
 
 

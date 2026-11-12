@@ -1,12 +1,24 @@
 import ChatHeader from "./components/ChatHeader";
 import ChatWindow from "./components/ChatWindow";
 import MessageInput from "./components/MessageInput";
-import { Box, Button, Chip, IconButton, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "../../types/session";
 import { getNextUserById } from "../../services/user.service";
-import { io } from "socket.io-client";
+import { endSession } from "../../services/session.service";
+import { socket } from "../../socket";
 import { type Message } from "./types";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +26,7 @@ import VideoCallIcon from "@mui/icons-material/VideoCall";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import {
   getLocalPrivateKey,
   deriveSessionKey,
@@ -24,9 +37,6 @@ import {
 } from "../../lib/crypto";
 
 const API = import.meta.env.VITE_BACKEND_URL;
-const socket = io(API, {
-  withCredentials: true,
-});
 
 const getStoredUserId = (): string => {
   try {
@@ -48,6 +58,9 @@ const ChatPage = () => {
   const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isE2EEActive, setIsE2EEActive] = useState(false);
+  const [isPeerOnline, setIsPeerOnline] = useState(false);
+  const [endDialogOpen, setEndDialogOpen] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
 
   const sessionKeyRef = useRef<CryptoKey | null>(null);
 
@@ -106,6 +119,57 @@ const ChatPage = () => {
       socket.off("message-delivered", handleDelivered);
     };
   }, []);
+
+  // Real-time session-ended listener
+  useEffect(() => {
+    const handleSessionEnded = ({ sessionId }: { sessionId: number }) => {
+      if (selectedSession && Number(selectedSession.id) === Number(sessionId)) {
+        setSelectedSession((prev) => (prev ? { ...prev, status: "completed" } : null));
+      }
+    };
+
+    socket.on("session-ended", handleSessionEnded);
+    return () => {
+      socket.off("session-ended", handleSessionEnded);
+    };
+  }, [selectedSession]);
+
+  // Real-time peer online status listener
+  useEffect(() => {
+    if (!selectedSession || !currentUserId) {
+      setIsPeerOnline(false);
+      return;
+    }
+
+    const peerId =
+      Number(selectedSession.helper_id) === Number(currentUserId)
+        ? Number(selectedSession.requester_id)
+        : Number(selectedSession.helper_id);
+
+    const checkPeerStatus = () => {
+      socket.emit("check-user-status", { userId: peerId }, (res?: { userId: number; isOnline: boolean }) => {
+        if (res && Number(res.userId) === peerId) {
+          setIsPeerOnline(Boolean(res.isOnline));
+        }
+      });
+    };
+
+    checkPeerStatus();
+
+    const handleUserStatusChanged = (data: { userId: number; isOnline: boolean }) => {
+      if (Number(data.userId) === peerId) {
+        setIsPeerOnline(Boolean(data.isOnline));
+      }
+    };
+
+    socket.on("user-status-changed", handleUserStatusChanged);
+    socket.on("connect", checkPeerStatus);
+
+    return () => {
+      socket.off("user-status-changed", handleUserStatusChanged);
+      socket.off("connect", checkPeerStatus);
+    };
+  }, [selectedSession, currentUserId]);
 
   // Real-time message listener with client-side decryption
   useEffect(() => {
@@ -326,6 +390,21 @@ const ChatPage = () => {
     }
   };
 
+  const handleEndSession = async () => {
+    if (!selectedSession) return;
+    try {
+      setIsEnding(true);
+      await endSession(Number(selectedSession.id));
+      setSelectedSession((prev) => (prev ? { ...prev, status: "completed" } : null));
+      socket.emit("end-session", { sessionId: selectedSession.id });
+      setEndDialogOpen(false);
+    } catch (err) {
+      console.error("Failed to end session:", err);
+    } finally {
+      setIsEnding(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -337,7 +416,11 @@ const ChatPage = () => {
       }}
     >
       <Box sx={{ display: { xs: selectedSession ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 340 }, flexShrink: 0 }}>
-        <SessionSidebar onSelectSession={setSelectedSession} selectedSessionId={selectedSession?.id} />
+        <SessionSidebar
+          onSelectSession={setSelectedSession}
+          selectedSessionId={selectedSession?.id}
+          activeSessionStatus={selectedSession?.status}
+        />
       </Box>
 
       <Box
@@ -371,35 +454,83 @@ const ChatPage = () => {
                     name: chatUser?.name || "Loading...",
                     role: chatUser?.role || "Loading...",
                     avatarUrl: chatUser?.avatar,
+                    connected: isPeerOnline,
                   }}
+                  badge={
+                    <Chip
+                      icon={isE2EEActive ? <LockIcon sx={{ fontSize: "11px !important" }} /> : <LockOpenIcon sx={{ fontSize: "11px !important" }} />}
+                      label={isE2EEActive ? "E2EE" : "Standard"}
+                      size="small"
+                      variant="outlined"
+                      color={isE2EEActive ? "success" : "default"}
+                      sx={{
+                        height: 18,
+                        fontSize: 10,
+                        fontWeight: 600,
+                        "& .MuiChip-label": { px: 0.75 },
+                        "& .MuiChip-icon": { ml: 0.5, mr: -0.25 },
+                      }}
+                    />
+                  }
                 />
               </Box>
 
-              <Chip
-                icon={isE2EEActive ? <LockIcon sx={{ fontSize: 13 }} /> : <LockOpenIcon sx={{ fontSize: 13 }} />}
-                label={isE2EEActive ? "E2EE" : "Standard"}
-                size="small"
-                variant="outlined"
-                color={isE2EEActive ? "success" : "default"}
-                sx={{
-                  ml: 1,
-                  display: { xs: "none", sm: "inline-flex" },
-                  fontWeight: 600,
-                  fontSize: 11,
-                  height: 24,
-                }}
-              />
+              <Tooltip title={selectedSession.status !== "active" ? "Session has ended" : "Start video call"}>
+                <span>
+                  <IconButton
+                    color="primary"
+                    disabled={selectedSession.status !== "active" || selectedSession.mode !== "call"}
+                    onClick={() => navigate(`/meeting/${selectedSession.id}`)}
+                    sx={{
+                      ml: 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: "8px",
+                      p: 0.8,
+                      "&.Mui-disabled": { opacity: 0.4 },
+                    }}
+                  >
+                    <VideoCallIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
 
-              <Button
-                variant="outlined"
-                startIcon={<VideoCallIcon />}
-                disabled={selectedSession.status !== "active" || selectedSession.mode !== "call"}
-                onClick={() => navigate(`/meeting/${selectedSession.id}`)}
-                sx={{ flexShrink: 0, ml: 1, px: { xs: 1.25, sm: 2 }, fontSize: { xs: 12, sm: 14 } }}
-              >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Start video call</Box>
-                <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>Call</Box>
-              </Button>
+              {selectedSession.status === "active" ? (
+                <Tooltip title="End session">
+                  <span>
+                    <IconButton
+                      color="error"
+                      onClick={() => setEndDialogOpen(true)}
+                      sx={{
+                        ml: 1,
+                        border: "1px solid",
+                        borderColor: "error.light",
+                        borderRadius: "8px",
+                        p: 0.8,
+                        color: "error.main",
+                        "&:hover": {
+                          bgcolor: "rgba(211, 47, 47, 0.08)",
+                        },
+                      }}
+                    >
+                      <CancelOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Chip
+                  label="Completed"
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    ml: 1,
+                    height: 26,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "text.secondary",
+                  }}
+                />
+              )}
             </Box>
 
             <ChatWindow
@@ -408,11 +539,27 @@ const ChatPage = () => {
               currentUserId={currentUserId}
             />
 
-            <MessageInput
-              onSend={handleSendMessage}
-              onSendMedia={handleSendMedia}
-              disabled={!connected}
-            />
+            {selectedSession.status === "active" ? (
+              <MessageInput
+                onSend={handleSendMessage}
+                onSendMedia={handleSendMedia}
+                disabled={!connected}
+              />
+            ) : (
+              <Box
+                sx={{
+                  p: 2,
+                  textAlign: "center",
+                  bgcolor: "action.hover",
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                  🔒 This session has ended. Messaging and video calls are closed.
+                </Typography>
+              </Box>
+            )}
           </Box>
         ) : (
           <Box
@@ -428,6 +575,28 @@ const ChatPage = () => {
           </Box>
         )}
       </Box>
+
+      <Dialog
+        open={endDialogOpen}
+        onClose={() => !isEnding && setEndDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>End this session?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Ending this session will permanently close messaging and video calls for both participants. This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEndDialogOpen(false)} disabled={isEnding} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleEndSession} disabled={isEnding} variant="contained" color="error">
+            {isEnding ? "Ending..." : "End Session"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

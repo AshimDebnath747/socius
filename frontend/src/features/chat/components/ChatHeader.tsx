@@ -2,7 +2,7 @@ import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
 import { chatColors, chatFonts } from "../theme/chatTheme";
 import type { ChatHeaderProps } from "../../posts/types";
 
-export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
+export default function ChatHeader({ otherUser, onClick, badge }: ChatHeaderProps) {
   return (
     <Box
       onClick={onClick}
@@ -15,7 +15,7 @@ export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
     >
       {/* Top row: who you're talking to */}
       <Stack direction="row" alignItems="center" spacing={1.5}>
-        <Box sx={{ position: "relative" }}>
+        <Box sx={{ position: "relative", display: "inline-flex" }}>
           <Avatar
             src={
               otherUser.avatarUrl
@@ -26,30 +26,29 @@ export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
           >
             {otherUser.name.charAt(0).toUpperCase()}
           </Avatar>
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: -1,
-              right: -1,
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              bgcolor: otherUser.connected
-                ? chatColors.primary
-                : chatColors.inkSoft,
-              border: `2px solid ${chatColors.surface}`,
-              "@media (prefers-reduced-motion: no-preference)":
-                otherUser.connected
-                  ? {
-                      animation: "chat-pulse 2s ease-in-out infinite",
-                    }
-                  : undefined,
-              "@keyframes chat-pulse": {
-                "0%, 100%": { boxShadow: `0 0 0 0 color-mix(in srgb, ${chatColors.primary} 35%, transparent)` },
-                "50%": { boxShadow: `0 0 0 4px color-mix(in srgb, ${chatColors.primary} 0%, transparent)` },
-              },
-            }}
-          />
+          {otherUser.connected && (
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: "#22c55e",
+                border: "2px solid",
+                borderColor: "background.paper",
+                boxShadow: "0 0 0 1px rgba(0,0,0,0.06)",
+                "@media (prefers-reduced-motion: no-preference)": {
+                  animation: "online-pulse 2s ease-in-out infinite",
+                },
+                "@keyframes online-pulse": {
+                  "0%, 100%": { boxShadow: "0 0 0 0 rgba(34, 197, 94, 0.45)" },
+                  "50%": { boxShadow: "0 0 0 4px rgba(34, 197, 94, 0)" },
+                },
+              }}
+            />
+          )}
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -65,32 +64,34 @@ export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
           >
             {otherUser.name}
           </Typography>
-          <Chip
-            label={
-              otherUser.role === "helper"
-                ? "Helper"
-                : otherUser.role === "requester"
-                  ? "Requester"
-                  : "Click for more info"
-            }
-            size="small"
-            sx={{
-              mt: 0.25,
-              height: 18,
-              fontSize: 11,
-              fontFamily: chatFonts.body,
-              fontWeight: 500,
-              bgcolor:
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25 }}>
+            <Chip
+              label={
                 otherUser.role === "helper"
-                  ? chatColors.accentSoft
-                  : chatColors.primarySoft,
-              color:
-                otherUser.role === "helper"
-                  ? chatColors.accent
-                  : chatColors.primary,
-              "& .MuiChip-label": { px: 1 },
-            }}
-          />
+                  ? "Helper"
+                  : otherUser.role === "requester"
+                    ? "Requester"
+                    : "Click for more info"
+              }
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: 11,
+                fontFamily: chatFonts.body,
+                fontWeight: 500,
+                bgcolor:
+                  otherUser.role === "helper"
+                    ? chatColors.accentSoft
+                    : chatColors.primarySoft,
+                color:
+                  otherUser.role === "helper"
+                    ? chatColors.accent
+                    : chatColors.primary,
+                "& .MuiChip-label": { px: 1 },
+              }}
+            />
+            {badge}
+          </Stack>
         </Box>
       </Stack>
 

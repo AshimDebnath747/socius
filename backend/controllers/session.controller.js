@@ -59,28 +59,34 @@ export const getSessionByIdController = async (req, res) => {
 
 export const endSessionByIdController = async (req, res) => {
     try {
-        const { id } = req.params
+        const { id } = req.params;
 
-        const result = await endSessionById(id)
+        const result = await endSessionById(id, req.user.id);
 
-        return res.status(201).json({
-            success: true,
-            message: "session fetched successfully",
-            data: result
-        })
+        try {
+            const io = getIO();
+            if (io) {
+                io.to(`session-${id}`).emit("session-ended", { sessionId: Number(id) });
+            }
+        } catch (socketErr) {
+            console.error("Socket emission error in endSessionByIdController:", socketErr);
+        }
 
-
-    } catch (err) {
-
-        console.log("message:", err.message)
         return res.status(200).json({
+            success: true,
+            message: "Session ended successfully",
+            data: result,
+        });
+    } catch (err) {
+        console.error("Error ending session:", err.message);
+        const statusCode = err.message?.includes("Unauthorized") ? 403 : 400;
+        return res.status(statusCode).json({
             success: false,
-            message: "session could not be fetched!",
-            data: err.message
-        })
-
+            message: err.message || "Session could not be ended",
+            data: null,
+        });
     }
-}
+};
 
 export const cancelSessionByIdController = async (req, res) => {
     try {

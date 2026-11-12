@@ -53,25 +53,26 @@ export const getSessionById = async (id, userId) => {
     return rows[0];
 };
 
-export const endSessionById = async (id) => {
+export const endSessionById = async (id, userId) => {
     const client = await pool.connect();
 
-    console.log(typeof id);
     try {
         await client.query("BEGIN");
-        console.log("begin");
         const { rows } = await client.query(
-            "SELECT id, status, help_request_id FROM session WHERE id = $1 FOR UPDATE",
+            "SELECT id, status, help_request_id, requester_id, helper_id FROM session WHERE id = $1 FOR UPDATE",
             [id],
         );
 
         if (!rows[0]) {
             throw new Error("Session not found");
         }
-        console.log("rows:", rows[0]);
         const session = rows[0];
 
-        // 2️⃣ Check current status
+        if (userId && session.requester_id !== userId && session.helper_id !== userId) {
+            throw new Error("Unauthorized: you are not a participant of this session");
+        }
+
+        // Check current status
         if (session.status !== "active") {
             throw new Error("Only active sessions can be completed");
         }
@@ -82,13 +83,13 @@ export const endSessionById = async (id) => {
         );
 
         await client.query(
-            `UPDATE helprequest SET status = 'closed' WHERE id = $1`,
+            `UPDATE helprequest SET req_status = 'closed' WHERE id = $1`,
             [session.help_request_id],
         );
 
         await client.query("COMMIT");
 
-        return { message: "Session completed successfully" };
+        return { message: "Session completed successfully", sessionId: Number(id), status: "completed" };
     } catch (err) {
         await client.query("ROLLBACK");
 

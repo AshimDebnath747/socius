@@ -140,8 +140,21 @@ const CommunityMembers = ({ communityId }: Props) => {
     };
 
     return (
-        <Paper elevation={3} sx={{ p: 3, borderRadius: "10px" }}>
-            <Typography variant="h5" gutterBottom>
+        <Paper
+            elevation={0}
+            sx={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                p: 3,
+                borderRadius: "14px",
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                overflow: "hidden",
+            }}
+        >
+            <Typography variant="h5" fontWeight={700} gutterBottom>
                 Community Members
             </Typography>
 
@@ -156,7 +169,7 @@ const CommunityMembers = ({ communityId }: Props) => {
                     No members found.
                 </Typography>
             ) : (
-                <List>
+                <List sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                     {members.map((member) => (
                         <ListItem
                             key={member.id}

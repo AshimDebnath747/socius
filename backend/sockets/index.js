@@ -11,12 +11,9 @@ export const initSocket = (io) => {
 
     io.on("connection", (socket) => {
 
-        const userId = socket.user.id;
+        const userId = Number(socket.user.id);
 
-        const sockets = onlineUsers.get(userId);
-        console.log(
-            `User ${userId} has ${sockets?.size ?? 0} socket(s)`
-        );
+        const isFirstSocket = !onlineUsers.has(userId) || onlineUsers.get(userId).size === 0;
 
         // Track this socket
         if (!onlineUsers.has(userId)) {
@@ -24,7 +21,20 @@ export const initSocket = (io) => {
         }
 
         onlineUsers.get(userId).add(socket.id);
-        console.log("User connected:", userId);
+        console.log("User connected:", userId, `(Total sockets: ${onlineUsers.get(userId).size})`);
+
+        if (isFirstSocket) {
+            io.emit("user-status-changed", { userId, isOnline: true });
+        }
+
+        // Check single user status
+        socket.on("check-user-status", ({ userId: targetUserId }, callback) => {
+            const id = Number(targetUserId);
+            const isOnline = onlineUsers.has(id) && onlineUsers.get(id).size > 0;
+            if (typeof callback === "function") {
+                callback({ userId: id, isOnline });
+            }
+        });
 
         // Join personal room
         socket.join(`user-${userId}`);
@@ -42,6 +52,7 @@ export const initSocket = (io) => {
 
                 if (sockets.size === 0) {
                     onlineUsers.delete(userId);
+                    io.emit("user-status-changed", { userId, isOnline: false });
                 }
             }
             console.log("User disconnected:", userId);

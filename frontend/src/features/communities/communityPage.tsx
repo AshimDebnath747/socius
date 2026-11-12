@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import CommunitySidebar from "../communities/components/communitiesSidebar";
 import CreateCommunityPage from "../communities/components/CreateCommunityPage";
-import { io } from "socket.io-client";
+import { socket } from "../../socket";
 import { getAllCommunities } from "../../services/community.service";
 import type { Community, CommunityMessage } from "../../types/community";
 import axios from "axios";
@@ -13,9 +13,6 @@ import ChatHeader from "../chat/components/ChatHeader";
 import CommunityDashboard from "./components/communityDashboard";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 const API = import.meta.env.VITE_BACKEND_URL;
-const socket = io(API, {
-  withCredentials: true,
-});
 const user: string | null = localStorage.getItem("user");
 let CURRENT_USER_ID: string = "";
 if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
@@ -316,46 +313,47 @@ const CommunityPage = () => {
               width: "100%",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}>
-              <IconButton onClick={() => setSelectedCommunity(null)} aria-label="Back to communities" sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}>
-                <ArrowBackIcon />
-              </IconButton>
-            <ChatHeader
-              otherUser={{
-                name: selectedCommunity.name || "Loading...",
-                role: "click for more info",
-                avatarUrl: selectedCommunity.avatar,
-              }}
-              onClick={() => setShowDashboard(true)}
-            />
-            </Box>
+            {!showDashboard && (
+              <Box sx={{ display: "flex", alignItems: "center", bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}>
+                <IconButton onClick={() => setSelectedCommunity(null)} aria-label="Back to communities" sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}>
+                  <ArrowBackIcon />
+                </IconButton>
+                <ChatHeader
+                  otherUser={{
+                    name: selectedCommunity.name || "Loading...",
+                    role: "click for more info",
+                    avatarUrl: selectedCommunity.avatar,
+                  }}
+                  onClick={() => setShowDashboard(true)}
+                />
+              </Box>
+            )}
             {showDashboard ? (
               <CommunityDashboard
                 community={selectedCommunity}
                 onBack={() => setShowDashboard(false)}
               />
             ) : (
-              <CommunityChatWindow
-                messages={messages}
-                loading={loading}
-                currentUserId={CURRENT_USER_ID}
-              />
-            )}
+              <>
+                <CommunityChatWindow
+                  messages={messages}
+                  loading={loading}
+                  currentUserId={CURRENT_USER_ID}
+                />
+                <MessageInput
+                  onSend={(content) => {
+                    if (!selectedCommunity) return;
 
-            {!showDashboard && (
-              <MessageInput
-                onSend={(content) => {
-                  if (!selectedCommunity) return;
-
-                  socket.emit("send-message", {
-                    type: "community",
-                    sessionId: selectedCommunity.id,
-                    content,
-                  });
-                }}
-                onSendMedia={handleSendMedia}
-                disabled={false}
-              />
+                    socket.emit("send-message", {
+                      type: "community",
+                      sessionId: selectedCommunity.id,
+                      content,
+                    });
+                  }}
+                  onSendMedia={handleSendMedia}
+                  disabled={false}
+                />
+              </>
             )}
           </Box>
         ) : (

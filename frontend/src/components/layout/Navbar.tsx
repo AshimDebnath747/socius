@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   AppBar,
   Avatar,
@@ -23,12 +23,7 @@ import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import PersonIcon from "@mui/icons-material/Person";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import { io } from "socket.io-client";
-
-const socket = io(import.meta.env.VITE_BACKEND_URL, {
-  withCredentials: true,
-  autoConnect: false,
-});
+import { socket } from "../../socket";
 
 type NavBarAuth = {
   checkAuth: boolean;
@@ -43,7 +38,6 @@ const links = [
 ];
 
 const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileNavHidden, setMobileNavHidden] = useState(false);
@@ -76,14 +70,15 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    socket.disconnect();
     try {
+      socket.disconnect();
       await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       localStorage.removeItem("user");
       setCheckAuth(false);
-      navigate("/login", { replace: true });
+      window.location.assign("/login");
     } catch (error) {
       console.error(error);
+      window.location.assign("/login");
     } finally {
       setLoggingOut(false);
     }

@@ -239,21 +239,24 @@ const CommunityInfo = () => {
                     {community.description}
                 </Typography>
 
-                <Divider sx={{ my: 3 }} />
+                {community.rules?.trim() ? (
+                    <>
+                        <Divider sx={{ my: 3 }} />
+                        <Typography
+                            variant="h6"
+                            gutterBottom
+                        >
+                            Rules
+                        </Typography>
 
-                <Typography
-                    variant="h6"
-                    gutterBottom
-                >
-                    Rules
-                </Typography>
-
-                <Typography
-                    color="text.secondary"
-                    whiteSpace="pre-line"
-                >
-                    {community.rules}
-                </Typography>
+                        <Typography
+                            color="text.secondary"
+                            whiteSpace="pre-line"
+                        >
+                            {community.rules}
+                        </Typography>
+                    </>
+                ) : null}
 
                 <Divider sx={{ my: 3 }} />
 

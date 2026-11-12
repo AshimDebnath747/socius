@@ -15,9 +15,10 @@ import type { Session } from "../../../types/session";
 type SessionSidebarProps = {
   onSelectSession: (session: Session) => void;
   selectedSessionId?: number;
+  activeSessionStatus?: string;
 };
 
-const SessionSidebar = ({ onSelectSession, selectedSessionId }: SessionSidebarProps) => {
+const SessionSidebar = ({ onSelectSession, selectedSessionId, activeSessionStatus }: SessionSidebarProps) => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,6 +34,18 @@ const SessionSidebar = ({ onSelectSession, selectedSessionId }: SessionSidebarPr
     };
     fetchSessions();
   }, []);
+
+  useEffect(() => {
+    if (selectedSessionId && activeSessionStatus) {
+      setSessions((prev) =>
+        prev.map((s) =>
+          Number(s.id) === Number(selectedSessionId)
+            ? { ...s, status: activeSessionStatus as Session["status"] }
+            : s
+        )
+      );
+    }
+  }, [selectedSessionId, activeSessionStatus]);
 
   return (
     <Box sx={{ width: { xs: "100%", md: 340 }, flexShrink: 0, height: "100%", borderRight: { xs: 0, md: "1px solid" }, borderColor: "divider", display: "flex", flexDirection: "column", bgcolor: "background.paper" }}>

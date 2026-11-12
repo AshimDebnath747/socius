@@ -184,7 +184,7 @@ export const registerMessageEvents = (io, socket) => {
             : `session-${sessionId}`;
 
         for (const participant of participants) {
-          const userSockets = onlineUsers.get(participant.user_id);
+          const userSockets = onlineUsers.get(Number(participant.user_id));
 
           // User is offline
           if (!userSockets) {

@@ -1,4 +1,7 @@
 import { signupUser, loginUser, checkAuthService } from "../services/auth.service.js";
+import jwt from "jsonwebtoken";
+import { onlineUsers } from "../sockets/manageOnline.js";
+import { getIO } from "../sockets/index.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -53,9 +56,32 @@ export const login = async (req, res) => {
 }
 
 export const logout = (req, res) => {
-    res.clearCookie("token", {
-        cookieOptions
-    });
+    try {
+        const token = req.cookies?.token;
+        if (token && process.env.JWT_SECRET) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const userId = Number(decoded.id);
+            const userSockets = onlineUsers.get(userId);
+            if (userSockets) {
+                const io = getIO();
+                if (io) {
+                    for (const socketId of userSockets) {
+                        const s = io.sockets.sockets.get(socketId);
+                        if (s) {
+                            s.disconnect(true);
+                        }
+                    }
+                    io.emit("user-status-changed", { userId, isOnline: false });
+                }
+                onlineUsers.delete(userId);
+                console.log(`User ${userId} logged out. Sockets disconnected & marked offline.`);
+            }
+        }
+    } catch (err) {
+        console.log("Logout cleanup error:", err.message);
+    }
+
+    res.clearCookie("token", cookieOptions);
 
     return res.status(200).json({
         success: true,

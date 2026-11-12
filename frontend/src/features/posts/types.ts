@@ -47,6 +47,7 @@ export interface ChatHeaderProps {
     connected?: boolean;
   };
   onClick?: () => void;
+  badge?: React.ReactNode;
 }
 
 export interface JoinRequest {

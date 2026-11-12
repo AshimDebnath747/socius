@@ -10,7 +10,7 @@ export const getSessionById = async (id:number) => {
     return res.data.data;
 };
 
-export const endSession = async (id:number) => {
-    const res = await api.patch(`/api/sessions/${id}/end`);
+export const endSession = async (id: number) => {
+    const res = await api.put(`/api/sessions/${id}/end`);
     return res.data;
 };
