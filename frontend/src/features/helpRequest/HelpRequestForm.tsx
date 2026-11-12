@@ -12,7 +12,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import axios from "axios";
+import api from "../../lib/axios";
 import ImageUpload from "./components/ImageUpload";
 import { useNavigate } from "react-router-dom";
 type FormData = {
@@ -28,7 +28,7 @@ export default function CreateHelpRequestForm() {
   const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
-    categoryId: "",
+    categoryId: "1",
     urgency: "medium",
     preferredMode: "text",
     communityId: "",
@@ -54,41 +54,36 @@ export default function CreateHelpRequestForm() {
 
     payload.append("title", formData.title);
     payload.append("description", formData.description);
-    payload.append("categoryId", formData.categoryId);
+    if (formData.categoryId) {
+      payload.append("categoryId", formData.categoryId);
+    }
     payload.append("urgency", formData.urgency);
     payload.append("preferredMode", formData.preferredMode);
 
-    if (formData.communityId) {
-      payload.append("communityId", formData.communityId);
+    if (formData.communityId.trim()) {
+      payload.append("communityId", formData.communityId.trim());
     }
 
     if (image) {
       payload.append("image", image);
     }
     try {
-      const API = import.meta.env.VITE_BACKEND_URL;
-      await axios.post(`${API}/api/help-requests`, payload, {
-        withCredentials: true,
-      });
-      //   setFormData({
-      //     title: "",
-      //     description: "",
-      //     categoryId: "",
-      //     urgency: "medium",
-      //     preferredMode: "text",
-      //     communityId: "",
-      //   });
-      //   setImage(null);
-      //   console.log(res);
+      await api.post("/api/help-requests", payload);
 
       navigate("/feed", {
         state: {
           success: "Help request created successfully!",
         },
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Could not create help request:", err);
-      setErrorMessage("Your request could not be created. Check your connection and try again.");
+      const serverMessage =
+        err.response?.data?.message ||
+        (Array.isArray(err.response?.data?.errors)
+          ? err.response.data.errors.join(", ")
+          : null) ||
+        "Your request could not be created. Please check your inputs and try again.";
+      setErrorMessage(serverMessage);
     } finally {
       setSubmitting(false);
     }

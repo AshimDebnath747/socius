@@ -1,9 +1,9 @@
 import ChatHeader from "./components/ChatHeader";
 import ChatWindow from "./components/ChatWindow";
 import MessageInput from "./components/MessageInput";
-import { Box, Button, IconButton, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, Typography } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "../../types/session";
 import { getNextUserById } from "../../services/user.service";
 import { io } from "socket.io-client";
@@ -12,39 +12,61 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import {
+  getLocalPrivateKey,
+  deriveSessionKey,
+  encryptChatMessage,
+  decryptChatMessage,
+  fetchUserPublicKey,
+  initializeUserCryptoKeys,
+} from "../../lib/crypto";
+
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
 });
-const user: string | null = localStorage.getItem("user");
-console.log("user :", user);
-let CURRENT_USER_ID: string = "";
-if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
-console.log(CURRENT_USER_ID);
+
+const getStoredUserId = (): string => {
+  try {
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      return String(parsed.id || "");
+    }
+  } catch {
+    // ignore parse error
+  }
+  return "";
+};
 
 const ChatPage = () => {
   const navigate = useNavigate();
+  const currentUserId = getStoredUserId();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [isE2EEActive, setIsE2EEActive] = useState(false);
+
+  const sessionKeyRef = useRef<CryptoKey | null>(null);
 
   const connected = true;
-
   const loading = false;
 
+  // Mark unread messages as read
   useEffect(() => {
     messages.forEach((msg) => {
-      if (msg.senderId !== CURRENT_USER_ID && !msg.isRead) {
+      if (msg.senderId !== currentUserId && !msg.isRead) {
         socket.emit("message-read", {
           messageId: msg.id,
         });
       }
     });
-  }, [messages]);
+  }, [messages, currentUserId]);
 
   useEffect(() => {
     const handleMessageRead = ({ messageId }: { messageId: string }) => {
-      console.log("message read event hit on message id", messageId);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === String(messageId)
@@ -63,9 +85,9 @@ const ChatPage = () => {
       socket.off("message-read", handleMessageRead);
     };
   }, []);
+
   useEffect(() => {
     const handleDelivered = ({ messageId }: { messageId: string }) => {
-      console.log("message delivered event hit on message id", messageId);
       setMessages((prev) =>
         prev.map((msg) =>
           String(msg.id) === String(messageId)
@@ -85,13 +107,21 @@ const ChatPage = () => {
     };
   }, []);
 
+  // Real-time message listener with client-side decryption
   useEffect(() => {
-    const handleReceiveMessage = (msg: any) => {
+    const handleReceiveMessage = async (msg: any) => {
+      let content = msg.content;
+
+      // If session key is available, decrypt the payload
+      if (sessionKeyRef.current && content) {
+        content = await decryptChatMessage(content, sessionKeyRef.current);
+      }
+
       const message: Message = {
         id: String(msg.id),
         sessionId: String(msg.session_id),
         senderId: String(msg.sender_id),
-        content: msg.content,
+        content,
 
         messageType: msg.message_type || "text",
 
@@ -105,77 +135,162 @@ const ChatPage = () => {
         isRead: msg.is_read,
       };
 
-      console.log(message.createdAt);
-      console.log(typeof message.createdAt);
-      // console.log(message.createdAt instanceof Date);
       setMessages((prev) => [...prev, message]);
-      if (message.senderId !== CURRENT_USER_ID) {
+
+      if (message.senderId !== currentUserId) {
         socket.emit("message-delivered", {
           messageId: message.id,
         });
       }
     };
+
     socket.on("receive-message", handleReceiveMessage);
     return () => {
       socket.off("receive-message", handleReceiveMessage);
     };
-  }, []);
-  // Function to handle session selection
+  }, [currentUserId]);
 
+  // Session selection & E2EE key derivation & historical message loading
   useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        if (!selectedSession) return;
-        console.log("selected session:", selectedSession.id);
+    let isCancelled = false;
 
-        const msg = await axios.get(
+    const setupSessionAndLoadMessages = async () => {
+      if (!selectedSession) {
+        sessionKeyRef.current = null;
+        setIsE2EEActive(false);
+        setMessages([]);
+        return;
+      }
+
+      sessionKeyRef.current = null;
+      setIsE2EEActive(false);
+
+      const peerId =
+        String(selectedSession.helper_id) === String(currentUserId)
+          ? selectedSession.requester_id
+          : selectedSession.helper_id;
+
+      // 1. Fetch raw messages from backend
+      let rawMessagesList: any[] = [];
+      try {
+        const msgRes = await axios.get(
           `${API}/api/sessions/${selectedSession.id}/messages`,
           {
             withCredentials: true,
           },
         );
+        rawMessagesList = msgRes.data?.data || [];
+      } catch (err) {
+        console.error("Failed to fetch session messages:", err);
+      }
 
-        console.log(msg.data);
-        const messages: Message[] = msg.data?.data?.map((msg: any) => ({
-          id: String(msg.id),
-          sessionId: String(msg.session_id),
-          senderId: String(msg.sender_id),
-          content: msg.content,
+      if (isCancelled) return;
 
-          messageType: msg.message_type || "text",
+      // 2. Derive E2EE Session Key
+      let derivedKey: CryptoKey | null = null;
+      try {
+        let myPrivateKey = await getLocalPrivateKey(currentUserId);
+        if (!myPrivateKey) {
+          const initRes = await initializeUserCryptoKeys(currentUserId);
+          myPrivateKey = initRes?.privateKey || null;
+        }
 
-          mediaUrl: msg.media_url || undefined,
-          mediaName: msg.media_name || undefined,
-          mediaMimeType: msg.media_mime_type || undefined,
-          mediaSize: msg.media_size ? Number(msg.media_size) : undefined,
+        const peerPublicKeyJwk = await fetchUserPublicKey(peerId);
 
-          createdAt: msg.created_at,
-          isRead: msg.is_read,
-          isDelivered: msg.is_delivered,
-        }));
+        if (myPrivateKey && peerPublicKeyJwk) {
+          derivedKey = await deriveSessionKey(
+            myPrivateKey,
+            peerPublicKeyJwk,
+            selectedSession.id
+          );
+        }
+      } catch (keyErr) {
+        console.warn("Could not derive E2EE session key:", keyErr);
+      }
 
-        setMessages(messages);
-        socket.emit("join-session", selectedSession.id);
+      if (isCancelled) return;
+
+      if (derivedKey) {
+        sessionKeyRef.current = derivedKey;
+        setIsE2EEActive(true);
+      } else {
+        sessionKeyRef.current = null;
+        setIsE2EEActive(false);
+      }
+
+      // 3. Decrypt historical messages
+      const decryptedMessages: Message[] = await Promise.all(
+        rawMessagesList.map(async (raw: any) => {
+          let content = raw.content;
+          if (derivedKey && content) {
+            content = await decryptChatMessage(content, derivedKey);
+          }
+          return {
+            id: String(raw.id),
+            sessionId: String(raw.session_id),
+            senderId: String(raw.sender_id),
+            content,
+
+            messageType: raw.message_type || "text",
+
+            mediaUrl: raw.media_url || undefined,
+            mediaName: raw.media_name || undefined,
+            mediaMimeType: raw.media_mime_type || undefined,
+            mediaSize: raw.media_size ? Number(raw.media_size) : undefined,
+
+            createdAt: raw.created_at,
+            isRead: raw.is_read,
+            isDelivered: raw.is_delivered,
+          };
+        })
+      );
+
+      if (isCancelled) return;
+
+      setMessages(decryptedMessages);
+      socket.emit("join-session", selectedSession.id);
+
+      try {
         const res = await getNextUserById(
           selectedSession.helper_id,
           selectedSession.requester_id,
         );
-        setChatUser(res);
-        console.log("Fetched user:", res);
-      } catch (err) {
-        console.error(err);
+        if (!isCancelled) {
+          setChatUser(res);
+        }
+      } catch (userErr) {
+        console.error("Failed to load chat user profile:", userErr);
       }
     };
 
-    fetchSessions();
-  }, [selectedSession]);
+    setupSessionAndLoadMessages();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedSession, currentUserId]);
+
+  // Outgoing encrypted message sender
+  const handleSendMessage = async (textToSend: string) => {
+    if (!selectedSession) return;
+
+    let payloadContent = textToSend;
+    if (sessionKeyRef.current) {
+      payloadContent = await encryptChatMessage(textToSend, sessionKeyRef.current);
+    }
+
+    socket.emit("send-message", {
+      type: "session",
+      sessionId: selectedSession.id,
+      content: payloadContent,
+    });
+  };
 
   const handleSendMedia = async (file: File, caption: string) => {
     if (!selectedSession) return;
 
     try {
       const formData = new FormData();
-
       formData.append("media", file);
 
       const response = await axios.post(
@@ -186,37 +301,31 @@ const ChatPage = () => {
         },
       );
 
-      console.log("Media upload response:", response.data);
-
       const media = response.data?.data;
-
       if (!media?.mediaUrl) {
         throw new Error("Media URL was not returned by the server");
       }
 
+      let encryptedCaption = caption;
+      if (caption && sessionKeyRef.current) {
+        encryptedCaption = await encryptChatMessage(caption, sessionKeyRef.current);
+      }
+
       socket.emit("send-message", {
         type: "session",
-
         sessionId: selectedSession.id,
-
-        content: caption,
-
+        content: encryptedCaption,
         messageType: media.messageType,
-
         mediaUrl: media.mediaUrl,
-
         mediaName: media.mediaName,
-
         mediaMimeType: media.mediaMimeType,
-
         mediaSize: media.mediaSize,
       });
-
-      console.log("Media message sent successfully");
     } catch (error) {
       console.error("Failed to send media:", error);
     }
   };
+
   return (
     <Box
       sx={{
@@ -265,6 +374,22 @@ const ChatPage = () => {
                   }}
                 />
               </Box>
+
+              <Chip
+                icon={isE2EEActive ? <LockIcon sx={{ fontSize: 13 }} /> : <LockOpenIcon sx={{ fontSize: 13 }} />}
+                label={isE2EEActive ? "E2EE" : "Standard"}
+                size="small"
+                variant="outlined"
+                color={isE2EEActive ? "success" : "default"}
+                sx={{
+                  ml: 1,
+                  display: { xs: "none", sm: "inline-flex" },
+                  fontWeight: 600,
+                  fontSize: 11,
+                  height: 24,
+                }}
+              />
+
               <Button
                 variant="outlined"
                 startIcon={<VideoCallIcon />}
@@ -280,19 +405,11 @@ const ChatPage = () => {
             <ChatWindow
               messages={messages}
               loading={loading}
-              currentUserId={CURRENT_USER_ID}
+              currentUserId={currentUserId}
             />
 
             <MessageInput
-              onSend={(content) => {
-                if (!selectedSession) return;
-
-                socket.emit("send-message", {
-                  type: "session",
-                  sessionId: selectedSession.id,
-                  content,
-                });
-              }}
+              onSend={handleSendMessage}
               onSendMedia={handleSendMedia}
               disabled={!connected}
             />

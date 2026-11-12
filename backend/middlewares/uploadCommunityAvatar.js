@@ -1,9 +1,13 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
-// Create uploads/avatars if it doesn't exist
-const uploadDir = "uploads/communities";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Create uploads/communities if it doesn't exist
+const uploadDir = path.join(__dirname, "..", "uploads", "communities");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });

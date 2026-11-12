@@ -61,7 +61,7 @@ const PostHeader = ({
                         alignItems="center"
                     >
                         <Avatar
-                            src={`${import.meta.env.VITE_BACKEND_URL}${avatar}`}
+                            src={avatar ? `${import.meta.env.VITE_BACKEND_URL || ""}${avatar}` : undefined}
                             sx={{
                                 width: 64,
                                 height: 64,
@@ -71,7 +71,7 @@ const PostHeader = ({
                                 fontWeight: 700,
                             }}
                         >
-                            {name.charAt(0).toUpperCase()}
+                            {name?.charAt(0)?.toUpperCase() || "?"}
                         </Avatar>
 
                         <Box>

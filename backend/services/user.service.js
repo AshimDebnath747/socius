@@ -231,3 +231,51 @@ export const updateAvatarService = async (userId, avatar) => {
 
   return rows[0];
 };
+
+export const upsertUserCryptoKeys = async (
+  userId,
+  publicKey,
+  encryptedPrivateKey = null,
+  keySalt = null,
+  keyIv = null
+) => {
+  const query = `
+    INSERT INTO user_crypto_keys (user_id, public_key, encrypted_private_key, key_salt, key_iv, updated_at)
+    VALUES ($1, $2, $3, $4, $5, NOW())
+    ON CONFLICT (user_id) DO UPDATE SET
+      public_key = EXCLUDED.public_key,
+      encrypted_private_key = COALESCE(EXCLUDED.encrypted_private_key, user_crypto_keys.encrypted_private_key),
+      key_salt = COALESCE(EXCLUDED.key_salt, user_crypto_keys.key_salt),
+      key_iv = COALESCE(EXCLUDED.key_iv, user_crypto_keys.key_iv),
+      updated_at = NOW()
+    RETURNING user_id, public_key, encrypted_private_key, key_salt, key_iv;
+  `;
+  const { rows } = await pool.query(query, [
+    userId,
+    publicKey,
+    encryptedPrivateKey,
+    keySalt,
+    keyIv,
+  ]);
+  return rows[0];
+};
+
+export const getUserPublicKey = async (userId) => {
+  const query = `
+    SELECT user_id, public_key
+    FROM user_crypto_keys
+    WHERE user_id = $1;
+  `;
+  const { rows } = await pool.query(query, [userId]);
+  return rows[0] || null;
+};
+
+export const getUserCryptoKeys = async (userId) => {
+  const query = `
+    SELECT user_id, public_key, encrypted_private_key, key_salt, key_iv
+    FROM user_crypto_keys
+    WHERE user_id = $1;
+  `;
+  const { rows } = await pool.query(query, [userId]);
+  return rows[0] || null;
+};

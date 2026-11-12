@@ -26,32 +26,39 @@ const PostPage = () => {
   useEffect(() => {
     const fetchRequest = async () => {
       try {
-        const res = await api.get(`api/help-requests/${id}`);
-        console.log(res.data.data);
+        const res = await api.get(`/api/help-requests/${id}`);
+        if (!res.data?.success || !res.data?.data) {
+          setRequest(null);
+          return;
+        }
+        const data = res.data.data;
         const post: Post = {
-          id: res.data.data.id,
-          title: res.data.data.title,
-          description: res.data.data.description,
-          categoryId: res.data.data.category_id,
-          communityId: res.data.data.community_id,
-          preferredMode: res.data.data.preferred_mode,
-          status: res.data.data.req_status,
-          urgency: res.data.data.urgency,
-          createdAt: res.data.data.created_at,
-          createdBy: res.data.data.created_by,
-          name: res.data.data.name,
-          avatar: res.data.data.avatar,
-          image: res.data.data.image,
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          categoryId: data.category_id,
+          communityId: data.community_id,
+          preferredMode: data.preferred_mode,
+          status: data.req_status,
+          urgency: data.urgency,
+          createdAt: data.created_at,
+          createdBy: data.created_by,
+          name: data.name,
+          avatar: data.avatar,
+          image: data.image,
         };
         setRequest(post);
       } catch (err) {
-        console.error(err);
+        console.error("Could not load help request:", err);
+        setRequest(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRequest();
+    if (id) {
+      fetchRequest();
+    }
   }, [id]);
   const navigate = useNavigate();
 
@@ -123,7 +130,11 @@ const PostPage = () => {
               {request.image && (
                 <Box
                   component="img"
-                  src={`${import.meta.env.VITE_BACKEND_URL}${request.image}`}
+                  src={
+                    request.image.startsWith("http")
+                      ? request.image
+                      : `${import.meta.env.VITE_BACKEND_URL || ""}${request.image.startsWith("/") ? "" : "/"}${request.image}`
+                  }
                   alt={request.title}
                   sx={{
                     width: "100%",

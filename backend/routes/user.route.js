@@ -12,11 +12,19 @@ import {
   getReviewsByIdController,
   getNextUserByIdController,
   updateAvatarController,
+  saveUserCryptoKeysController,
+  getUserPublicKeyController,
+  getMyCryptoKeysController,
 } from "../controllers/user.controller.js";
 import { getNextUserById } from "../services/user.service.js";
 const router = express.Router();
 
 router.use(authMiddleware);
+
+// E2EE Key Management
+router.post("/keys", saveUserCryptoKeysController);
+router.get("/keys/me", getMyCryptoKeysController);
+router.get("/:id/public-key", getUserPublicKeyController);
 
 //get requests
 router.get("/", getUserByIdController);

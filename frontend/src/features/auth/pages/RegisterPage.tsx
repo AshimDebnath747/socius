@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { useState } from "react";
+import { initializeUserCryptoKeys } from "../../../lib/crypto";
 
 /* 🔹 Local type */
 interface RegisterFormValues {
@@ -27,6 +28,13 @@ const RegisterPage = () => {
         password: data.password
       }, { withCredentials: true });
       localStorage.setItem("user", JSON.stringify(res.data.data));
+      if (res.data?.data?.id) {
+        try {
+          await initializeUserCryptoKeys(res.data.data.id, data.password);
+        } catch (keyErr) {
+          console.error("Could not initialize E2EE keys on signup:", keyErr);
+        }
+      }
       navigate("/login") // force reload so auth check works
     } catch (error) {
       console.log(error)

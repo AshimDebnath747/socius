@@ -19,6 +19,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
 import googlelogo from "../../../assets/googlelogo.svg"
 import axios from "axios";
+import { initializeUserCryptoKeys } from "../../../lib/crypto";
 interface LoginFormValues {
   email: string;
   password: string;
@@ -56,6 +57,11 @@ const LoginPage = () => {
       );
       console.log(res.data.data);
       localStorage.setItem("user", JSON.stringify(res.data.data));
+      try {
+        await initializeUserCryptoKeys(res.data.data.id, data.password);
+      } catch (keyErr) {
+        console.error("Could not initialize E2EE keys on login:", keyErr);
+      }
       window.location.assign("/"); // force reload so auth check works
     } catch (error) {
       console.error(error);

@@ -19,14 +19,14 @@ export const postHelpRequestController = async (req, res) => {
     const userId = req.user.id;
 
     // Image path saved by Multer
-    const image = req.file ? req.file.path : null;
+    const image = req.file ? `/uploads/help-requests/${req.file.filename}` : null;
     const result = await postHelpRequest(
       title,
       description,
-      categoryId,
+      categoryId ?? null,
       urgency,
       preferredMode,
-      communityId,
+      communityId ?? null,
       userId,
       image,
     );
@@ -37,9 +37,10 @@ export const postHelpRequestController = async (req, res) => {
       data: result,
     });
   } catch (err) {
+    console.error("Error creating help request:", err);
     return res.status(500).json({
       success: false,
-      message: "Help request could not be uploaded!",
+      message: err.message || "Help request could not be uploaded!",
       data: err.message,
     });
   }
@@ -70,16 +71,24 @@ export const getHelpRequestByIdController = async (req, res) => {
     const { id } = req.params;
 
     const result = await getHelpRequestById(id);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Help request not found",
+        data: null,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Help request by ID fetched successfully!",
       data: result,
     });
   } catch (err) {
-    return res.status(200).json({
+    return res.status(404).json({
       success: false,
-      message: "help request by ID can not be fetched!",
-      data: err.message,
+      message: err.message || "Help request by ID could not be fetched",
+      data: null,
     });
   }
 };

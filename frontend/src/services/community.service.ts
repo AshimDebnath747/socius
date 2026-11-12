@@ -9,16 +9,14 @@ export interface CreateCommunityPayload {
 
 
 export const createCommunity = async (payload: FormData) => {
-
-  const res = await api.post("api/communities", payload)
-  return res.data
-}
+  const res = await api.post("/api/communities", payload);
+  return res.data;
+};
 
 // Get all the communities
 
 export const getAllCommunities = async () => {
-
-  const res = await api.get("api/communities")
+  const res = await api.get("/api/communities");
   const communities = res.data.data.map(
     ({ is_private, created_at, ...rest }: any) => ({
       ...rest,
@@ -26,7 +24,5 @@ export const getAllCommunities = async () => {
       createdAt: created_at,
     })
   );
-  return communities
-}
-
-console.log(getAllCommunities())
+  return communities;
+};

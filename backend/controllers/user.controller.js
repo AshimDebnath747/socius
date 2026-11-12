@@ -1,7 +1,16 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getUserById, putUser, getReviewsById, getNextUserById, updateAvatarService } from "../services/user.service.js";
+import {
+  getUserById,
+  putUser,
+  getReviewsById,
+  getNextUserById,
+  updateAvatarService,
+  upsertUserCryptoKeys,
+  getUserPublicKey,
+  getUserCryptoKeys,
+} from "../services/user.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -164,5 +173,102 @@ export const updateAvatarController = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const saveUserCryptoKeysController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { publicKey, encryptedPrivateKey, keySalt, keyIv } = req.body;
+
+    if (!publicKey) {
+      return res.status(400).json({
+        success: false,
+        message: "publicKey is required",
+      });
+    }
+
+    const savedKeys = await upsertUserCryptoKeys(
+      userId,
+      typeof publicKey === "object" ? JSON.stringify(publicKey) : publicKey,
+      encryptedPrivateKey ?? null,
+      keySalt ?? null,
+      keyIv ?? null
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Crypto keys saved successfully",
+      data: savedKeys,
+    });
+  } catch (err) {
+    console.error("Error saving crypto keys:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save crypto keys",
+      error: err.message,
+    });
+  }
+};
+
+export const getUserPublicKeyController = async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const keyData = await getUserPublicKey(targetUserId);
+
+    if (!keyData) {
+      return res.status(404).json({
+        success: false,
+        message: "Public key not found for user",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        userId: keyData.user_id,
+        publicKey: keyData.public_key,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching public key:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch public key",
+      error: err.message,
+    });
+  }
+};
+
+export const getMyCryptoKeysController = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const keyData = await getUserCryptoKeys(userId);
+
+    if (!keyData) {
+      return res.status(404).json({
+        success: false,
+        message: "No keys found for current user",
+        data: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        userId: keyData.user_id,
+        publicKey: keyData.public_key,
+        encryptedPrivateKey: keyData.encrypted_private_key,
+        keySalt: keyData.key_salt,
+        keyIv: keyData.key_iv,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching user crypto keys:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch user crypto keys",
+      error: err.message,
+    });
   }
 };

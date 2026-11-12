@@ -35,8 +35,7 @@ const FeedPage = () => {
   useEffect(() => {
     const func = async () => {
       try {
-        const API = import.meta.env.VITE_BACKEND_URL;
-        const res = await api.get(`${API}/api/help-requests?status=open`);
+        const res = await api.get("/api/help-requests?status=open");
         if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
         const data = res.data.data
           .filter(

@@ -1,13 +1,17 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const createUploader = (
     folderName,
     allowedMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"],
     maxFileSize = 25 * 1024 * 1024
 ) => {
-    const uploadDir = `uploads/${folderName}`;
+    const uploadDir = path.join(__dirname, "..", "uploads", folderName);
 
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });

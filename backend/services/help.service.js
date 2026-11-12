@@ -104,7 +104,7 @@ export const getHelpRequestById = async (id) => {
   const { rows } = await pool.query(query, [id]);
 
   if (!rows[0]) {
-    throw new Error("There might be some problem in server!");
+    throw new Error("Help request not found");
   }
 
   return rows[0];

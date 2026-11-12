@@ -226,12 +226,19 @@ export const registerMessageEvents = (io, socket) => {
             const room = `user-${participant.user_id}`;
 
             console.log(room, io.sockets.adapter.rooms.get(room));
+            const notificationPreview =
+              type === "session"
+                ? fullMessage.message_type === "text"
+                  ? "🔒 New encrypted message"
+                  : "🔒 Sent a media file"
+                : fullMessage.content;
+
             io.to(`user-${participant.user_id}`).emit(event, {
               messageId: fullMessage.id,
               sessionId,
               senderName: fullMessage.name,
               //communityName, // fetch this if needed
-              preview: fullMessage.content,
+              preview: notificationPreview,
             });
           }
         }

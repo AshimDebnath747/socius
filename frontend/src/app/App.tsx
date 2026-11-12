@@ -5,6 +5,7 @@ import { Snackbar, Alert, Button } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import { socket } from "../socket";
+import { initializeUserCryptoKeys } from "../lib/crypto";
 import FeedPage from "../features/posts/pages/FeedPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
@@ -169,6 +170,9 @@ const App = () => {
             JSON.stringify(res.data.data.user)
           );
           setIsAuth(true);
+          void initializeUserCryptoKeys(res.data.data.user.id).catch((err) => {
+            console.warn("Could not auto-initialize crypto keys in App.tsx:", err);
+          });
         } else {
           localStorage.removeItem("user");
           setIsAuth(false);
