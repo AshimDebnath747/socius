@@ -19,6 +19,8 @@ import Loader from "../components/loader";
 import CommunityInfo from "../features/communities/pages/communityInfo";
 import UserProfile from "../features/profile/UserProfile";
 import MeetingPage from "../features/meeting/MeetingPage";
+import IncomingCallDialog from "../features/meeting/IncomingCallDialog";
+import { ringtone } from "../lib/ringtone";
 const API = import.meta.env.VITE_BACKEND_URL;
 
 const App = () => {
@@ -40,6 +42,14 @@ const App = () => {
     communityId: null,
     message: "",
   });
+
+  const [incomingCall, setIncomingCall] = useState<{
+    sessionId: number;
+    callerId: number | string;
+    callerName: string;
+    callerAvatar: string | null;
+    callMode: "voice" | "video";
+  } | null>(null);
 
   useEffect(() => {
     const handleSessionNotification = (data: {
@@ -119,21 +129,78 @@ const App = () => {
     };
   }, []);
   useEffect(() => {
-    const handleIncomingMeeting = (data: { sessionId: number }) => {
-      setNotification({
-        open: true,
-        type: "meeting",
+    const handleIncomingMeeting = (data: {
+      sessionId: number;
+      callerId: number | string;
+      callerName?: string;
+      callerAvatar?: string | null;
+      callMode?: "voice" | "video";
+    }) => {
+      if (location.pathname === `/meeting/${data.sessionId}`) return;
+
+      ringtone.start();
+      setIncomingCall({
         sessionId: data.sessionId,
-        communityId: null,
-        message: "Your help partner started a video call.",
+        callerId: data.callerId,
+        callerName: data.callerName || "Help Partner",
+        callerAvatar: data.callerAvatar || null,
+        callMode: data.callMode || "video",
+      });
+    };
+
+    const handleCallEnded = ({ sessionId }: { sessionId: number }) => {
+      setIncomingCall((prev) => {
+        if (prev && Number(prev.sessionId) === Number(sessionId)) {
+          ringtone.stop();
+          return null;
+        }
+        return prev;
       });
     };
 
     socket.on("incoming-meeting", handleIncomingMeeting);
+    socket.on("call-ended", handleCallEnded);
+
     return () => {
       socket.off("incoming-meeting", handleIncomingMeeting);
+      socket.off("call-ended", handleCallEnded);
     };
-  }, []);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!incomingCall) return;
+    const timer = setTimeout(() => {
+      ringtone.stop();
+      socket.emit("reject-meeting", {
+        sessionId: incomingCall.sessionId,
+        reason: "timeout",
+      });
+      setIncomingCall(null);
+    }, 35000);
+    return () => clearTimeout(timer);
+  }, [incomingCall]);
+
+  const handleAnswerCall = () => {
+    if (!incomingCall) return;
+    ringtone.stop();
+    const { sessionId, callMode, callerName, callerAvatar } = incomingCall;
+    setIncomingCall(null);
+    const query = new URLSearchParams({
+      mode: callMode,
+      ...(callerName ? { peerName: callerName } : {}),
+      ...(callerAvatar ? { peerAvatar: callerAvatar } : {}),
+    }).toString();
+    navigate(`/meeting/${sessionId}?${query}`, {
+      state: { peerName: callerName, peerAvatar: callerAvatar, callMode },
+    });
+  };
+
+  const handleRejectCall = () => {
+    if (!incomingCall) return;
+    ringtone.stop();
+    socket.emit("reject-meeting", { sessionId: incomingCall.sessionId });
+    setIncomingCall(null);
+  };
   useEffect(() => {
     const onConnect = () => {
       console.log("Connected:", socket.id);
@@ -192,6 +259,14 @@ const App = () => {
 
   return (
     <>
+      <IncomingCallDialog
+        open={Boolean(incomingCall)}
+        callerName={incomingCall?.callerName || "Help Partner"}
+        callerAvatar={incomingCall?.callerAvatar || null}
+        callMode={incomingCall?.callMode || "video"}
+        onAnswer={handleAnswerCall}
+        onReject={handleRejectCall}
+      />
       <Snackbar
         open={notification.open}
         autoHideDuration={10000}

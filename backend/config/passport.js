@@ -61,46 +61,67 @@ passport.use(
             callbackURL: "http://localhost:8000/api/auth/google/callback",
         },
         async (accessToken, refreshToken, profile, done) => {
-            const email = profile.emails?.[0]?.value;
-            const name = profile.displayName;
+            try {
+                const email = profile.emails?.[0]?.value;
+                const name = profile.displayName;
 
-            if (!email) {
-                return done(new Error("No email received from Google OAuth"));
-            }
-
-            const { rows } = await pool.query(
-                "SELECT * FROM users WHERE email = $1",
-                [email]
-            );
-
-            let user = rows[0];
-
-            if (!user) {
-                const newUser = await pool.query(
-                    "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
-                    [name, email]
-                );
-                user = newUser.rows[0];
-            }
-
-            const avatarUrl = profile.photos?.[0]?.value;
-            if (avatarUrl) {
-                const avatarPath = await downloadAvatar(avatarUrl, user.id, email);
-                if (avatarPath) {
-                    await pool.query(
-                        "UPDATE users SET avatar = $1 WHERE id = $2",
-                        [avatarPath, user.id]
-                    );
+                if (!email) {
+                    return done(new Error("No email received from Google OAuth"));
                 }
+
+                const { rows } = await pool.query(
+                    "SELECT * FROM users WHERE email = $1",
+                    [email]
+                );
+
+                let user = rows[0];
+
+                if (!user) {
+                    const newUser = await pool.query(
+                        "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
+                        [name, email]
+                    );
+                    user = newUser.rows[0];
+                }
+
+                // Check if user already has a valid avatar
+                let hasValidAvatar = Boolean(user.avatar);
+                if (hasValidAvatar && user.avatar.startsWith("/uploads/avatars/")) {
+                    const avatarFilePath = path.join(uploadDir, path.basename(user.avatar));
+                    try {
+                        await fsPromises.access(avatarFilePath);
+                    } catch {
+                        // Avatar file does not exist on disk, allow re-download
+                        hasValidAvatar = false;
+                    }
+                }
+
+                // Only download and store avatar if user does not already have one
+                if (!hasValidAvatar) {
+                    const avatarUrl = profile.photos?.[0]?.value;
+                    if (avatarUrl) {
+                        const avatarPath = await downloadAvatar(avatarUrl, user.id, email);
+                        if (avatarPath) {
+                            await pool.query(
+                                "UPDATE users SET avatar = $1 WHERE id = $2",
+                                [avatarPath, user.id]
+                            );
+                            user.avatar = avatarPath;
+                        }
+                    }
+                }
+
+                const token = jwt.sign(
+                    { id: user.id, email: user.email },
+                    process.env.JWT_SECRET,
+                    { expiresIn: "7d" }
+                );
+
+                return done(null, { token });
+            } catch (err) {
+                console.error("Google OAuth error:", err);
+                return done(err);
             }
-
-            const token = jwt.sign(
-                { id: user.id, email: user.email },
-                process.env.JWT_SECRET,
-                { expiresIn: "7d" }
-            );
-
-            return done(null, { token });
         }
     )
 );

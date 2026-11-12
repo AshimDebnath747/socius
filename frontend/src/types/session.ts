@@ -30,4 +30,7 @@ export interface Session {
   created_at: string;
 
   community_id: number;
+
+  peer_name?: string;
+  peer_avatar?: string;
 }

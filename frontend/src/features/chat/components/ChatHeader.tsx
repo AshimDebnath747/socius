@@ -19,7 +19,9 @@ export default function ChatHeader({ otherUser, onClick, badge }: ChatHeaderProp
           <Avatar
             src={
               otherUser.avatarUrl
-                ? `${import.meta.env.VITE_BACKEND_URL}${otherUser.avatarUrl}`
+                ? otherUser.avatarUrl.startsWith("http")
+                  ? otherUser.avatarUrl
+                  : `${import.meta.env.VITE_BACKEND_URL}${otherUser.avatarUrl}`
                 : undefined
             }
             sx={{ width: 40, height: 40, bgcolor: chatColors.primary }}

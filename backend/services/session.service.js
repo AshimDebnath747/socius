@@ -42,8 +42,17 @@ export const helpRequestAccept = async (helpRequestId, helperId, mode) => {
 
 export const getSessionById = async (id, userId) => {
     const { rows } = await pool.query(
-        `SELECT * FROM session
-         WHERE id = $1 AND (requester_id = $2 OR helper_id = $2)`,
+        `SELECT
+            s.*,
+            u.name AS peer_name,
+            u.avatar AS peer_avatar
+         FROM session s
+         LEFT JOIN users u
+         ON u.id = CASE
+             WHEN s.requester_id = $2 THEN s.helper_id
+             ELSE s.requester_id
+         END
+         WHERE s.id = $1 AND (s.requester_id = $2 OR s.helper_id = $2)`,
         [id, userId],
     );
 
@@ -127,7 +136,7 @@ export const cancelSessionById = async (id) => {
     }
 };
 
-export const getMessages = async (id, userId) => {
+export const getMessages = async (id, userId, { cursor, limit = 30 } = {}) => {
     const { rows } = await pool.query(
         `
         SELECT requester_id, helper_id
@@ -147,7 +156,11 @@ export const getMessages = async (id, userId) => {
         throw new Error("Unauthorized user!");
     }
 
-    const { rows: messages } = await pool.query(
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100);
+    const cursorId = cursor ? parseInt(cursor, 10) : null;
+    const queryLimit = limitNum + 1;
+
+    const { rows: fetchedRows } = await pool.query(
         `
         SELECT
             m.*,
@@ -171,13 +184,28 @@ export const getMessages = async (id, userId) => {
         FROM messages m
 
         WHERE m.session_id = $1
+          AND ($2::bigint IS NULL OR m.id < $2::bigint)
 
-        ORDER BY m.created_at ASC
+        ORDER BY m.id DESC
+
+        LIMIT $3
         `,
-        [id]
+        [id, cursorId, queryLimit]
     );
 
-    return messages;
+    const hasMore = fetchedRows.length > limitNum;
+    const messages = hasMore ? fetchedRows.slice(0, limitNum) : fetchedRows;
+
+    // Reverse to return in chronological order (oldest first, latest last)
+    messages.reverse();
+
+    const nextCursor = hasMore && messages.length > 0 ? messages[0].id : null;
+
+    return {
+        messages,
+        nextCursor,
+        hasMore,
+    };
 };
 
 export const getAllSessions = async (userId) => {
@@ -200,11 +228,20 @@ export const getAllSessions = async (userId) => {
     h.req_status,
     h.created_by,
     h.created_at,
-    h.community_id
+    h.community_id,
+
+    u.name AS peer_name,
+    u.avatar AS peer_avatar
 
 FROM session s
 JOIN helprequest h
 ON s.help_request_id = h.id
+
+LEFT JOIN users u
+ON u.id = CASE
+    WHEN s.requester_id = $1 THEN s.helper_id
+    ELSE s.requester_id
+END
 
 WHERE s.requester_id = $1
    OR s.helper_id = $1

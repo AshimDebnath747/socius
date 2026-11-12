@@ -261,7 +261,7 @@ const CommunityPage = () => {
       }}
     >
       {!showCreate && (
-        <Box sx={{ display: { xs: selectedCommunity ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 320 }, flexShrink: 0 }}>
+        <Box sx={{ display: { xs: selectedCommunity ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 330 }, flexShrink: 0 }}>
           <CommunitySidebar
             communities={communities}
             loading={loading}

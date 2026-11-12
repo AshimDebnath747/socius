@@ -67,6 +67,7 @@ export const endSessionByIdController = async (req, res) => {
             const io = getIO();
             if (io) {
                 io.to(`session-${id}`).emit("session-ended", { sessionId: Number(id) });
+                io.to(`meeting-${id}`).emit("session-ended", { sessionId: Number(id) });
             }
         } catch (socketErr) {
             console.error("Socket emission error in endSessionByIdController:", socketErr);
@@ -113,27 +114,25 @@ export const cancelSessionByIdController = async (req, res) => {
 
 export const getMessagesController = async (req, res) => {
     try {
-        const { id } = req.params
-        const userId = req.user.id
+        const { id } = req.params;
+        const userId = req.user.id;
+        const { cursor, limit } = req.query;
 
-        const result = await getMessages(id, userId)
+        const result = await getMessages(id, userId, { cursor, limit });
         return res.status(200).json({
             success: true,
-            message: "session fetched successfully",
+            message: "session messages fetched successfully",
             data: result
-        })
-
-
-
+        });
     } catch (err) {
-        console.log("message:", err.message)
+        console.log("message:", err.message);
         return res.status(200).json({
             success: false,
             message: "session could not be fetched!",
             data: err.message
-        })
+        });
     }
-}
+};
 
 export const getAllSessionsController = async (req, res) => {
     try {

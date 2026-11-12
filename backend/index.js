@@ -23,12 +23,7 @@ const app = express();
 app.use(passport.initialize());
 app.use(express.json())
 app.use(cors({
-    origin: [
-        process.env.FEV,
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://192.168.29.91:5173",
-    ].filter(Boolean),
+    origin: true,
     credentials: true,               // <-- allow cookies
 }));
 console.log("enfdd:", process.env.FEV)

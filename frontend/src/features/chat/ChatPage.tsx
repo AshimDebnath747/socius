@@ -10,19 +10,24 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Tooltip,
   Typography,
 } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "../../types/session";
 import { getNextUserById } from "../../services/user.service";
-import { endSession } from "../../services/session.service";
+import { endSession, getSessionById } from "../../services/session.service";
 import { socket } from "../../socket";
-import { type Message } from "./types";
+import { type Message, type MessageType } from "./types";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import VideoCallIcon from "@mui/icons-material/VideoCall";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import CallIcon from "@mui/icons-material/Call";
+import VideocamIcon from "@mui/icons-material/Videocam";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -35,6 +40,13 @@ import {
   fetchUserPublicKey,
   initializeUserCryptoKeys,
 } from "../../lib/crypto";
+import {
+  getCachedSessionPeer,
+  getCachedSessions,
+  getCachedUserProfile,
+  setCachedSessionPeer,
+  setCachedUserProfile,
+} from "../../lib/userCache";
 
 const API = import.meta.env.VITE_BACKEND_URL;
 
@@ -53,14 +65,91 @@ const getStoredUserId = (): string => {
 
 const ChatPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSessionId = searchParams.get("sessionId");
   const currentUserId = getStoredUserId();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isE2EEActive, setIsE2EEActive] = useState(false);
   const [isPeerOnline, setIsPeerOnline] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const nextCursorRef = useRef<number | string | null>(null);
   const [endDialogOpen, setEndDialogOpen] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [callMenuAnchor, setCallMenuAnchor] = useState<null | HTMLElement>(null);
+
+  const handleSelectSession = useCallback((session: Session) => {
+    setSelectedSession(session);
+    setSearchParams({ sessionId: String(session.id) }, { replace: true });
+    const peerId =
+      String(session.helper_id) === String(currentUserId)
+        ? session.requester_id
+        : session.helper_id;
+    const cached = getCachedSessionPeer(session.id) || getCachedUserProfile(peerId);
+    if (cached) {
+      setChatUser({
+        id: String(cached.id),
+        name: cached.name,
+        avatar: cached.avatar || cached.avatarUrl,
+        avatarUrl: cached.avatarUrl || cached.avatar,
+        role: cached.role || (String(currentUserId) === String(session.requester_id) ? "helper" : "requester"),
+      });
+    } else if (session.peer_name) {
+      setChatUser({
+        id: String(peerId),
+        name: session.peer_name,
+        avatar: session.peer_avatar,
+        avatarUrl: session.peer_avatar,
+        role: String(currentUserId) === String(session.requester_id) ? "helper" : "requester",
+      });
+    }
+  }, [currentUserId, setSearchParams]);
+
+  // Auto-restore / select session from URL parameter (e.g. after returning from a call)
+  useEffect(() => {
+    if (!urlSessionId) return;
+    const targetId = Number(urlSessionId);
+    if (!targetId) return;
+
+    if (selectedSession && Number(selectedSession.id) === targetId) {
+      return;
+    }
+
+    const cachedSessions = getCachedSessions();
+    const foundSession = cachedSessions?.find((s) => Number(s.id) === targetId);
+
+    if (foundSession) {
+      handleSelectSession(foundSession);
+    } else {
+      getSessionById(targetId)
+        .then((session) => {
+          if (session) {
+            handleSelectSession(session);
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not load session from URL:", err);
+        });
+    }
+  }, [urlSessionId, selectedSession, handleSelectSession]);
+
+  const handleStartCall = (mode: "voice" | "video") => {
+    setCallMenuAnchor(null);
+    if (selectedSession) {
+      const peerName = chatUser?.name || "";
+      const peerAvatar = chatUser?.avatar || "";
+      const query = new URLSearchParams({
+        mode,
+        ...(peerName ? { peerName } : {}),
+        ...(peerAvatar ? { peerAvatar } : {}),
+      }).toString();
+      navigate(`/meeting/${selectedSession.id}?${query}`, {
+        state: { peerName, peerAvatar, callMode: mode },
+      });
+    }
+  };
 
   const sessionKeyRef = useRef<CryptoKey | null>(null);
 
@@ -177,7 +266,7 @@ const ChatPage = () => {
       let content = msg.content;
 
       // If session key is available, decrypt the payload
-      if (sessionKeyRef.current && content) {
+      if (sessionKeyRef.current && content && msg.message_type !== "call") {
         content = await decryptChatMessage(content, sessionKeyRef.current);
       }
 
@@ -234,16 +323,46 @@ const ChatPage = () => {
           ? selectedSession.requester_id
           : selectedSession.helper_id;
 
-      // 1. Fetch raw messages from backend
+      // 1. Check localStorage first for instant 0ms user profile rendering
+      const cached = getCachedSessionPeer(selectedSession.id) || getCachedUserProfile(peerId);
+      if (cached) {
+        setChatUser({
+          id: String(cached.id),
+          name: cached.name,
+          avatar: cached.avatar || cached.avatarUrl,
+          avatarUrl: cached.avatarUrl || cached.avatar,
+          role: cached.role || (String(currentUserId) === String(selectedSession.requester_id) ? "helper" : "requester"),
+        });
+      } else if (selectedSession.peer_name) {
+        setChatUser({
+          id: String(peerId),
+          name: selectedSession.peer_name,
+          avatar: selectedSession.peer_avatar,
+          avatarUrl: selectedSession.peer_avatar,
+          role: String(currentUserId) === String(selectedSession.requester_id) ? "helper" : "requester",
+        });
+      }
+
+      // 2. Fetch initial page of messages from backend (limit: 30)
       let rawMessagesList: any[] = [];
       try {
         const msgRes = await axios.get(
           `${API}/api/sessions/${selectedSession.id}/messages`,
           {
+            params: { limit: 30 },
             withCredentials: true,
           },
         );
-        rawMessagesList = msgRes.data?.data || [];
+        const resData = msgRes.data?.data;
+        if (resData && Array.isArray(resData.messages)) {
+          rawMessagesList = resData.messages;
+          setHasMoreMessages(Boolean(resData.hasMore));
+          nextCursorRef.current = resData.nextCursor || null;
+        } else if (Array.isArray(resData)) {
+          rawMessagesList = resData;
+          setHasMoreMessages(false);
+          nextCursorRef.current = null;
+        }
       } catch (err) {
         console.error("Failed to fetch session messages:", err);
       }
@@ -286,7 +405,7 @@ const ChatPage = () => {
       const decryptedMessages: Message[] = await Promise.all(
         rawMessagesList.map(async (raw: any) => {
           let content = raw.content;
-          if (derivedKey && content) {
+          if (derivedKey && content && raw.message_type !== "call") {
             content = await decryptChatMessage(content, derivedKey);
           }
           return {
@@ -319,8 +438,17 @@ const ChatPage = () => {
           selectedSession.helper_id,
           selectedSession.requester_id,
         );
-        if (!isCancelled) {
-          setChatUser(res);
+        if (!isCancelled && res) {
+          const profile = {
+            id: String(res.id),
+            name: res.name,
+            avatar: res.avatar,
+            avatarUrl: res.avatar,
+            role: res.role,
+          };
+          setChatUser(profile);
+          setCachedSessionPeer(selectedSession.id, profile);
+          setCachedUserProfile(profile);
         }
       } catch (userErr) {
         console.error("Failed to load chat user profile:", userErr);
@@ -333,6 +461,67 @@ const ChatPage = () => {
       isCancelled = true;
     };
   }, [selectedSession, currentUserId]);
+
+  const handleLoadMoreMessages = useCallback(async () => {
+    if (!selectedSession || !hasMoreMessages || isLoadingMore || !nextCursorRef.current) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+    try {
+      const cursor = nextCursorRef.current;
+      const msgRes = await axios.get(
+        `${API}/api/sessions/${selectedSession.id}/messages`,
+        {
+          params: { cursor, limit: 30 },
+          withCredentials: true,
+        },
+      );
+      const resData = msgRes.data?.data;
+      let olderRawList: any[] = [];
+      if (resData && Array.isArray(resData.messages)) {
+        olderRawList = resData.messages;
+        setHasMoreMessages(Boolean(resData.hasMore));
+        nextCursorRef.current = resData.nextCursor || null;
+      }
+
+      if (olderRawList.length > 0) {
+        const derivedKey = sessionKeyRef.current;
+        const olderDecrypted: Message[] = await Promise.all(
+          olderRawList.map(async (raw: any) => {
+            let content = raw.content;
+            if (derivedKey && content && raw.message_type !== "call") {
+              content = await decryptChatMessage(content, derivedKey);
+            }
+            return {
+              id: String(raw.id),
+              sessionId: String(raw.session_id),
+              senderId: String(raw.sender_id),
+              content,
+              messageType: (raw.message_type as MessageType) || "text",
+              mediaUrl: raw.media_url || undefined,
+              mediaName: raw.media_name || undefined,
+              mediaMimeType: raw.media_mime_type || undefined,
+              mediaSize: raw.media_size ? Number(raw.media_size) : undefined,
+              createdAt: raw.created_at,
+              isRead: raw.is_read,
+              isDelivered: raw.is_delivered,
+            };
+          })
+        );
+
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const uniqueOlder = olderDecrypted.filter((m) => !existingIds.has(m.id));
+          return [...uniqueOlder, ...prev];
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load more messages:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [selectedSession, hasMoreMessages, isLoadingMore]);
 
   // Outgoing encrypted message sender
   const handleSendMessage = async (textToSend: string) => {
@@ -415,9 +604,9 @@ const ChatPage = () => {
         overflow: "hidden",
       }}
     >
-      <Box sx={{ display: { xs: selectedSession ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 340 }, flexShrink: 0 }}>
+      <Box sx={{ display: { xs: selectedSession ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 330 }, flexShrink: 0 }}>
         <SessionSidebar
-          onSelectSession={setSelectedSession}
+          onSelectSession={handleSelectSession}
           selectedSessionId={selectedSession?.id}
           activeSessionStatus={selectedSession?.status}
         />
@@ -445,15 +634,22 @@ const ChatPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider", pr: { xs: 1, sm: 2 } }}>
-              <IconButton onClick={() => setSelectedSession(null)} aria-label="Back to conversations" sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}>
+              <IconButton
+                onClick={() => {
+                  setSelectedSession(null);
+                  setSearchParams({}, { replace: true });
+                }}
+                aria-label="Back to conversations"
+                sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}
+              >
                 <ArrowBackIcon />
               </IconButton>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <ChatHeader
                   otherUser={{
-                    name: chatUser?.name || "Loading...",
-                    role: chatUser?.role || "Loading...",
-                    avatarUrl: chatUser?.avatar,
+                    name: chatUser?.name || selectedSession.peer_name || "Help Partner",
+                    role: chatUser?.role || (String(currentUserId) === String(selectedSession.requester_id) ? "helper" : "requester"),
+                    avatarUrl: chatUser?.avatar || chatUser?.avatarUrl || selectedSession.peer_avatar,
                     connected: isPeerOnline,
                   }}
                   badge={
@@ -475,12 +671,13 @@ const ChatPage = () => {
                 />
               </Box>
 
-              <Tooltip title={selectedSession.status !== "active" ? "Session has ended" : "Start video call"}>
+              <Tooltip title={selectedSession.status !== "active" ? "Session has ended" : "Start call"}>
                 <span>
                   <IconButton
                     color="primary"
                     disabled={selectedSession.status !== "active" || selectedSession.mode !== "call"}
-                    onClick={() => navigate(`/meeting/${selectedSession.id}`)}
+                    onClick={(e) => setCallMenuAnchor(e.currentTarget)}
+                    aria-label="Start call"
                     sx={{
                       ml: 1,
                       border: "1px solid",
@@ -490,10 +687,41 @@ const ChatPage = () => {
                       "&.Mui-disabled": { opacity: 0.4 },
                     }}
                   >
-                    <VideoCallIcon fontSize="small" />
+                    <CallIcon fontSize="small" />
                   </IconButton>
                 </span>
               </Tooltip>
+
+              <Menu
+                anchorEl={callMenuAnchor}
+                open={Boolean(callMenuAnchor)}
+                onClose={() => setCallMenuAnchor(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: "12px",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                      minWidth: 175,
+                      mt: 0.5,
+                    },
+                  },
+                }}
+              >
+                <MenuItem onClick={() => handleStartCall("voice")} sx={{ py: 1, gap: 1 }}>
+                  <ListItemIcon sx={{ minWidth: "auto", mr: 1 }}>
+                    <CallIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Voice Call" secondary="Audio only" primaryTypographyProps={{ fontWeight: 600, fontSize: 13 }} secondaryTypographyProps={{ fontSize: 11 }} />
+                </MenuItem>
+                <MenuItem onClick={() => handleStartCall("video")} sx={{ py: 1, gap: 1 }}>
+                  <ListItemIcon sx={{ minWidth: "auto", mr: 1 }}>
+                    <VideocamIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Video Call" secondary="Camera & mic" primaryTypographyProps={{ fontWeight: 600, fontSize: 13 }} secondaryTypographyProps={{ fontSize: 11 }} />
+                </MenuItem>
+              </Menu>
 
               {selectedSession.status === "active" ? (
                 <Tooltip title="End session">
@@ -537,6 +765,10 @@ const ChatPage = () => {
               messages={messages}
               loading={loading}
               currentUserId={currentUserId}
+              onStartCall={handleStartCall}
+              onLoadMore={handleLoadMoreMessages}
+              hasMore={hasMoreMessages}
+              loadingMore={isLoadingMore}
             />
 
             {selectedSession.status === "active" ? (

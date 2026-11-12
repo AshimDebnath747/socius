@@ -11,5 +11,8 @@ export const registerSessionEvents = (io, socket) => {
         io.to(`session-${sessionId}`).emit("session-ended", {
             sessionId: Number(sessionId),
         });
+        io.to(`meeting-${sessionId}`).emit("session-ended", {
+            sessionId: Number(sessionId),
+        });
     });
 };

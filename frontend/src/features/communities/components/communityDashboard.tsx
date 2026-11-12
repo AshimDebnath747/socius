@@ -134,62 +134,51 @@ const CommunityDashboard = ({
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
+                p: { xs: 1, sm: 1.5, md: 2 },
             }}
         >
-            {/* Top Bar with Back Button directly beneath navbar */}
-            <Box
+            {/* Main 2-Column Split: Left (Back Button + Info + Buttons) & Right (Member List) */}
+            <Grid
+                container
+                spacing={2}
                 sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    bgcolor: "background.paper",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    px: { xs: 1.5, sm: 2 },
-                    py: 1,
-                    flexShrink: 0,
+                    height: "100%",
+                    minHeight: 0,
                 }}
             >
-                <Button
-                    startIcon={<ArrowBackIcon />}
-                    onClick={onBack}
-                    variant="text"
-                    size="small"
-                    sx={{
-                        textTransform: "none",
-                        fontWeight: 600,
-                        color: "text.primary",
-                        py: 0.5,
-                        px: 1,
-                        borderRadius: "8px",
-                    }}
-                >
-                    Back to Chat
-                </Button>
-            </Box>
-
-            {/* Main 2-Column Split: Left (Info + Buttons) & Right (Member List) */}
-            <Box sx={{ flex: 1, minHeight: 0, p: { xs: 1.5, sm: 2 }, overflow: "hidden" }}>
-                <Grid
-                    container
-                    spacing={2}
-                    sx={{
-                        height: "100%",
-                        minHeight: 0,
-                    }}
-                >
-                {/* Left Column: Info card on top, Buttons on bottom */}
+                {/* Left Column: Back button + Info card on top, Buttons on bottom */}
                 <Grid
                     size={{ xs: 12, md: 5 }}
                     sx={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 2,
+                        gap: 1.5,
                         height: "100%",
                         minHeight: 0,
                         overflowY: "auto",
                         pr: { md: 0.5 },
                     }}
                 >
+                    {/* Back to Chat Button */}
+                    <Box sx={{ display: "flex", alignItems: "center", mb: -0.5 }}>
+                        <Button
+                            startIcon={<ArrowBackIcon />}
+                            onClick={onBack}
+                            variant="text"
+                            size="small"
+                            sx={{
+                                textTransform: "none",
+                                fontWeight: 600,
+                                color: "text.primary",
+                                py: 0.5,
+                                px: 1,
+                                borderRadius: "8px",
+                            }}
+                        >
+                            Back to Chat
+                        </Button>
+                    </Box>
+
                     {/* Top Card: Icon, Name, Slug, Badge, Description, Rules */}
                     <Paper
                         elevation={0}
@@ -496,7 +485,6 @@ const CommunityDashboard = ({
                     )}
                 </Grid>
             </Grid>
-            </Box>
         </Box>
     );
 };
