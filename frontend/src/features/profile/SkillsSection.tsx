@@ -27,7 +27,7 @@
 //     <Card
 //       elevation={2}
 //       sx={{
-//         borderRadius: 4,
+//         borderRadius: "10px",
 //       }}
 //     >
 //       <CardContent sx={{ p: 4 }}>

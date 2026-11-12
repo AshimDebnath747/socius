@@ -26,7 +26,7 @@ const CommunityMembersCard = ({
 }: CommunityMembersCardProps) => {
     return (
         <Card sx={{
-            borderRadius: 3,
+            borderRadius: "10px",
         }}>
             <CardContent>
                 <Box

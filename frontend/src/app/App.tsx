@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Snackbar, Alert, Button } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import { socket } from "../socket";
 import FeedPage from "../features/posts/pages/FeedPage";
@@ -23,6 +23,8 @@ const API = import.meta.env.VITE_BACKEND_URL;
 const App = () => {
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMeetingPage = location.pathname.startsWith("/meeting/");
 
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -171,7 +173,7 @@ const App = () => {
           localStorage.removeItem("user");
           setIsAuth(false);
         }
-      } catch (err) {
+      } catch {
         localStorage.removeItem("user");
         setIsAuth(false);
       }
@@ -200,7 +202,8 @@ const App = () => {
         <Alert
           severity={notification.type === "meeting" ? "info" : "success"}
           sx={{
-            width: 500,
+            width: { xs: "calc(100vw - 32px)", sm: 500 },
+            maxWidth: "calc(100vw - 32px)",
             fontSize: "1rem",
             py: 1.5,
             px: 2,
@@ -229,7 +232,7 @@ const App = () => {
         checkAuth={isAuth}
         setCheckAuth={setIsAuth}
       />
-      <Box sx={{ minHeight: "calc(100vh - 64px)", overflow: "hidden" }}>
+      <Box sx={{ minHeight: "calc(100vh - 64px)", pb: { xs: isMeetingPage ? 0 : "calc(70px + env(safe-area-inset-bottom))", md: 0 }, bgcolor: "background.default", color: "text.primary", transition: "background-color 160ms ease" }}>
         <Routes>
           <Route
             path="/"

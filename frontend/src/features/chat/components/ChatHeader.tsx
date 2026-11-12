@@ -45,8 +45,8 @@ export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
                     }
                   : undefined,
               "@keyframes chat-pulse": {
-                "0%, 100%": { boxShadow: `0 0 0 0 ${chatColors.primary}55` },
-                "50%": { boxShadow: `0 0 0 4px ${chatColors.primary}00` },
+                "0%, 100%": { boxShadow: `0 0 0 0 color-mix(in srgb, ${chatColors.primary} 35%, transparent)` },
+                "50%": { boxShadow: `0 0 0 4px color-mix(in srgb, ${chatColors.primary} 0%, transparent)` },
               },
             }}
           />
@@ -83,7 +83,7 @@ export default function ChatHeader({ otherUser, onClick }: ChatHeaderProps) {
               bgcolor:
                 otherUser.role === "helper"
                   ? chatColors.accentSoft
-                  : `${chatColors.primary}1A`,
+                  : chatColors.primarySoft,
               color:
                 otherUser.role === "helper"
                   ? chatColors.accent

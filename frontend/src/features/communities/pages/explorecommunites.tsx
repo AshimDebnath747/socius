@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     Box,
+    Alert,
+    Container,
     Typography,
     TextField,
     Grid,
@@ -16,6 +18,7 @@ const ExploreCommunities = () => {
     const [communities, setCommunities] = useState<Community[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         const fetchCommunities = async () => {
@@ -33,6 +36,7 @@ const ExploreCommunities = () => {
                 setCommunities(data);
             } catch (error) {
                 console.error(error);
+                setError(true);
             } finally {
                 setLoading(false);
             }
@@ -48,13 +52,13 @@ const ExploreCommunities = () => {
     }, [communities, search]);
 
     return (
-        <Box sx={{ maxWidth: 1200, mx: "auto", p: 4 }}>
-            <Typography variant="h4" fontWeight={700}>
-                Explore Communities
+        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}>
+            <Typography variant="h3" fontWeight={600}>
+                Explore communities
             </Typography>
 
-            <Typography color="text.secondary" mb={4}>
-                Find communities that match your interests.
+            <Typography color="text.secondary" sx={{ mt: 0.75, mb: 3 }}>
+                Find a group to learn, share questions, and help other students.
             </Typography>
 
             <TextField
@@ -62,7 +66,7 @@ const ExploreCommunities = () => {
                 placeholder="Search communities..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                sx={{ mb: 4 }}
+                sx={{ mb: 3, maxWidth: 640 }}
                 InputProps={{
                     startAdornment: (
                         <InputAdornment position="start">
@@ -72,12 +76,13 @@ const ExploreCommunities = () => {
                 }}
             />
 
+            {error && <Alert severity="error" sx={{ mb: 2 }}>Communities could not be loaded. Check your connection and try again.</Alert>}
             {loading ? (
                 <Box display="flex" justifyContent="center" mt={8}>
                     <CircularProgress />
                 </Box>
             ) : (
-                <Grid container spacing={3}>
+                <Grid container spacing={2}>
                     {filteredCommunities.map((community) => (
                         <Grid
                             key={community.id}
@@ -88,8 +93,13 @@ const ExploreCommunities = () => {
                     ))}
                 </Grid>
             )}
-        </Box>
+            {!loading && !error && filteredCommunities.length === 0 && <Typography color="text.secondary" sx={{ py: 5, textAlign: "center" }}>No communities match that search.</Typography>}
+        </Container>
     );
 };
 
+// <<<<<<< ours
 export default ExploreCommunities;
+// =======
+// export default ExploreCommunities;
+// >>>>>>> theirs

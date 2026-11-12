@@ -25,7 +25,7 @@ const PostHeader = ({
         <Card
             elevation={0}
             sx={{
-                borderRadius: 5,
+                borderRadius: "10px",
                 overflow: "hidden",
                 border: "1px solid",
                 borderColor: "divider",
@@ -35,10 +35,9 @@ const PostHeader = ({
             {/* Header */}
             <Box
                 sx={{
-                    background:
-                        "linear-gradient(135deg,#1976d2,#42a5f5)",
-                    color: "white",
-                    p: 4,
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText",
+                    p: { xs: 2.5, sm: 4 },
                 }}
             >
                 <Typography
@@ -67,7 +66,7 @@ const PostHeader = ({
                                 width: 64,
                                 height: 64,
                                 fontSize: 28,
-                                bgcolor: "white",
+                                bgcolor: "action.selected",
                                 color: "primary.main",
                                 fontWeight: 700,
                             }}

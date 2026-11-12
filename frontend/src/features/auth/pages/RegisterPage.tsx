@@ -1,7 +1,8 @@
-import { Box, Button, Container, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Container, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { useState } from "react";
 
 /* 🔹 Local type */
 interface RegisterFormValues {
@@ -13,8 +14,12 @@ const API = import.meta.env.VITE_BACKEND_URL
 const RegisterPage = () => {
   const { register, handleSubmit } = useForm<RegisterFormValues>();
   const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const onSubmit = async (data: RegisterFormValues) => {
+    setErrorMessage("");
+    setSubmitting(true);
     try {
       const res = await axios.post(`${API}/api/auth/signup`, { // 🔥 important for cookies
         name: data.name,
@@ -25,30 +30,33 @@ const RegisterPage = () => {
       navigate("/login") // force reload so auth check works
     } catch (error) {
       console.log(error)
-      const message = "wrong credetials bro!";
-      alert(message);
+      setErrorMessage("We couldn’t create your account. Check the details or try signing in.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ minHeight: '100vh' }}>
-      <Box sx={{ mt: 8 }}>
-        <Typography variant="h4" fontWeight="bold" mb={3}>
+    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ minHeight: "calc(100dvh - 136px)", display: "flex", alignItems: "center", justifyContent: "center", py: { xs: 3, sm: 6 } }}>
+      <Paper sx={{ width: "100%", maxWidth: 500, p: { xs: 2.5, sm: 4 }, borderRadius: { xs: "10px", sm: "10px" }, border: "1px solid", borderColor: "divider", boxShadow: "0 18px 54px rgba(60,64,67,.10)" }}>
+        <Typography variant="h4" fontWeight={600} mb={1}>
           Create Account
         </Typography>
+        <Typography color="text.secondary" mb={3}>Create your Socious account to connect with people who can help.</Typography>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
+
+        <Stack component="form" spacing={1.5} onSubmit={handleSubmit(onSubmit)}>
           <TextField
             label="Name"
             fullWidth
-            margin="normal"
             {...register("name", { required: true })}
           />
 
           <TextField
             label="Email"
             fullWidth
-            margin="normal"
             {...register("email", { required: true })}
           />
 
@@ -56,14 +64,13 @@ const RegisterPage = () => {
             label="Password"
             type="password"
             fullWidth
-            margin="normal"
             {...register("password", { required: true })}
           />
 
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            Register
+          <Button type="submit" variant="contained" fullWidth disabled={submitting}>
+            {submitting ? "Creating account…" : "Create account"}
           </Button>
-        </form>
+        </Stack>
 
         <Button
           variant="text"
@@ -73,6 +80,7 @@ const RegisterPage = () => {
         >
           Login
         </Button>
+      </Paper>
       </Box>
     </Container>
   );

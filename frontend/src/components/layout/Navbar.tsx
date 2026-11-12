@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
+  Avatar,
   Box,
+  Button,
   CircularProgress,
   IconButton,
+  Paper,
   Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useAppColorMode } from "../../styles/colorModeContext";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
@@ -17,6 +21,8 @@ import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import PersonIcon from "@mui/icons-material/Person";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import { io } from "socket.io-client";
 
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
@@ -29,168 +35,183 @@ type NavBarAuth = {
   setCheckAuth: React.Dispatch<React.SetStateAction<boolean | null>>;
 };
 
+const links = [
+  { label: "Feed", path: "/feed", icon: <HomeRoundedIcon /> },
+  { label: "Chats", path: "/chat", icon: <ChatRoundedIcon /> },
+  { label: "Communities", path: "/create-community", icon: <GroupsRoundedIcon /> },
+  { label: "Explore", path: "/explorecommunities", icon: <TravelExploreRoundedIcon /> },
+];
+
 const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
-
+  const [mobileNavHidden, setMobileNavHidden] = useState(false);
+  const { mode, toggleMode } = useAppColorMode();
   const API = import.meta.env.VITE_BACKEND_URL;
   const isProfilePage = location.pathname === "/profile";
+  const isMeetingPage = location.pathname.startsWith("/meeting/");
 
-  // Helper to determine if a route is currently active (supports nested routes too)
-  const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
-  };
+  useEffect(() => {
+    let lastScrollTop = window.scrollY;
+    const handleScroll = (event: Event) => {
+      if (!window.matchMedia("(max-width: 899px)").matches) {
+        setMobileNavHidden(false);
+        return;
+      }
 
-  // Dynamic icon styles based on active state
-  const getIconStyle = (path: string) => {
-    const active = isActive(path);
-    return {
-      width: 46,
-      height: 46,
-      borderRadius: "12px",
-      color: active ? "#2563EB" : "#4B5563",
-      backgroundColor: active ? "#EEF4FF" : "transparent",
-      boxShadow: active ? "0 2px 6px rgba(37, 99, 235, 0.15)" : "none",
-      transition: "all 0.2s ease",
-      "&:hover": {
-        backgroundColor: "#EEF4FF",
-        color: "#2563EB",
-      },
+      const target = event.target;
+      const scrollTop = target instanceof HTMLElement ? target.scrollTop : window.scrollY;
+      setMobileNavHidden(scrollTop > lastScrollTop && scrollTop > 64);
+      lastScrollTop = scrollTop;
     };
-  };
+
+    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    return () => document.removeEventListener("scroll", handleScroll, true);
+  }, []);
+
+  const isActive = (path: string) => path === "/feed"
+    ? location.pathname === "/" || location.pathname.startsWith("/feed")
+    : location.pathname.startsWith(path);
 
   const handleLogout = async () => {
     setLoggingOut(true);
     socket.disconnect();
-
     try {
-      await fetch(`${API}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       localStorage.removeItem("user");
       setCheckAuth(false);
       navigate("/login", { replace: true });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoggingOut(false);
     }
   };
 
+  const navButtonSx = (active: boolean) => ({
+    px: 1.5,
+    color: active ? "primary.main" : "text.secondary",
+    bgcolor: active ? "action.selected" : "transparent",
+    minWidth: 0,
+    "&:hover": { bgcolor: active ? "action.selected" : "action.hover" },
+  });
+
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{
-        background: "#fff",
-        borderBottom: "1px solid #E5E7EB",
-        boxShadow: "0 2px 8px rgba(0,0,0,.05)",
-      }}
-    >
-      <Toolbar
-        sx={{
-          maxWidth: "1600px",
-          width: "100%",
-          mx: "auto",
-          px: 4,
-          minHeight: "72px",
-        }}
-      >
-        {/* Logo */}
-        <Typography
-          component={NavLink}
-          to="/"
-          variant="h5"
-          sx={{
-            flexGrow: 1,
-            fontWeight: 700,
-            color: "#2563EB",
-            textDecoration: "none",
-            letterSpacing: ".5px",
-          }}
-        >
-          Socious
-        </Typography>
+    <>
+      <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: "1px solid", borderColor: "divider", zIndex: 1100, transform: { xs: mobileNavHidden ? "translateY(-110%)" : "translateY(0)", md: "translateY(0)" }, transition: "transform 180ms ease", willChange: { xs: "transform", md: "auto" } }}>
+        <Toolbar sx={{ minHeight: { xs: 58, sm: 68 }, width: "100%", maxWidth: 1440, mx: "auto", px: { xs: 2, sm: 3 } }}>
+          <Typography
+            component={NavLink}
+            to="/"
+            sx={{ color: "primary.main", textDecoration: "none", fontWeight: 700, fontSize: 23, letterSpacing: "-0.06em", mr: { xs: 0, md: 5 } }}
+          >
+            socious
+          </Typography>
 
-        {/* Navigation */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Tooltip title="Feed" arrow>
-            <IconButton component={NavLink} to="/feed" sx={getIconStyle("/feed")}>
-              <HomeRoundedIcon />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Chat" arrow>
-            <IconButton component={NavLink} to="/chat" sx={getIconStyle("/chat")}>
-              <ChatRoundedIcon />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Community" arrow>
-            <IconButton component={NavLink} to="/create-community" sx={getIconStyle("/create-community")}>
-              <GroupsRoundedIcon />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Explore Communities" arrow>
-            <IconButton component={NavLink} to="/explorecommunities" sx={getIconStyle("/explorecommunities")}>
-              <TravelExploreRoundedIcon />
-            </IconButton>
-          </Tooltip>
-
-          {checkAuth ? (
-            isProfilePage ? (
-              <Tooltip title="Logout" arrow>
-                <IconButton
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  sx={getIconStyle("/profile")}
-                >
-                  {loggingOut ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <LogoutRoundedIcon />
-                  )}
-                </IconButton>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Profile" arrow>
-                <IconButton
+          {checkAuth && (
+            <Box component="nav" aria-label="Main navigation" sx={{ display: { xs: "none", md: "flex" }, gap: 0.5, alignItems: "center", flex: 1 }}>
+              {links.map((link) => (
+                <Button
+                  key={link.path}
                   component={NavLink}
-                  to="/profile"
-                  sx={getIconStyle("/profile")}
+                  to={link.path}
+                  startIcon={link.icon}
+                  sx={navButtonSx(isActive(link.path))}
                 >
-                  <PersonIcon />
-                </IconButton>
-              </Tooltip>
-            )
-          ) : (
-            <>
-              <Tooltip title="Login" arrow>
-                <IconButton component={NavLink} to="/login" sx={getIconStyle("/login")}>
-                  <LoginRoundedIcon />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip title="Sign Up" arrow>
-                <IconButton component={NavLink} to="/register" sx={getIconStyle("/register")}>
-                  <PersonAddRoundedIcon />
-                </IconButton>
-              </Tooltip>
-            </>
+                  {link.label}
+                </Button>
+              ))}
+            </Box>
           )}
-        </Box>
-      </Toolbar>
-    </AppBar>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 }, ml: "auto" }}>
+            <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              <IconButton
+                aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                onClick={toggleMode}
+                sx={{ color: "text.secondary" }}
+              >
+                {mode === "dark" ? <LightModeRoundedIcon /> : <DarkModeRoundedIcon />}
+              </IconButton>
+            </Tooltip>
+            {checkAuth ? (
+              isProfilePage ? (
+                <Tooltip title="Sign out">
+                  <span>
+                    <IconButton onClick={handleLogout} disabled={loggingOut} aria-label="Sign out" sx={{ color: "text.secondary" }}>
+                      {loggingOut ? <CircularProgress size={20} /> : <LogoutRoundedIcon />}
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Tooltip title="Your profile">
+                  <IconButton component={NavLink} to="/profile" aria-label="Your profile" sx={{ p: 0.4 }}>
+                    <Avatar sx={{ width: 34, height: 34, bgcolor: "action.selected", color: "primary.main" }}><PersonIcon fontSize="small" /></Avatar>
+                  </IconButton>
+                </Tooltip>
+              )
+            ) : (
+              <>
+                <Button component={NavLink} to="/login" startIcon={<LoginRoundedIcon />} sx={{ color: "text.secondary" }}>Sign in</Button>
+                <Button component={NavLink} to="/register" variant="contained" startIcon={<PersonAddRoundedIcon />}>Create account</Button>
+              </>
+            )}
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {checkAuth ? (isMeetingPage ? null : (
+        <Paper
+          component="nav"
+          aria-label="Mobile navigation"
+          square
+          elevation={4}
+          sx={{
+            display: { xs: "grid", md: "none" },
+            position: "fixed",
+            zIndex: 1200,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            pb: "env(safe-area-inset-bottom)",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            backdropFilter: "blur(16px)",
+          }}
+        >
+          {[...links, { label: "Profile", path: "/profile", icon: <PersonIcon /> }].map((link) => (
+            <Button
+              key={link.path}
+              component={NavLink}
+              to={link.path}
+              sx={{
+                minWidth: 0,
+                minHeight: 58,
+                p: 0.5,
+                borderRadius: 0,
+                display: "flex",
+                flexDirection: "column",
+                gap: 0.25,
+                color: isActive(link.path) ? "primary.main" : "text.secondary",
+                "& .MuiButton-startIcon": { m: 0 },
+                "&:hover": { bgcolor: "transparent" },
+              }}
+              startIcon={link.icon}
+            >
+              <Typography component="span" sx={{ fontSize: 10, lineHeight: 1.1, fontWeight: isActive(link.path) ? 700 : 500 }} noWrap>{link.label}</Typography>
+            </Button>
+          ))}
+        </Paper>
+      )) : (
+        <Paper component="nav" aria-label="Account navigation" square sx={{ display: { xs: "flex", md: "none" }, position: "fixed", zIndex: 1200, left: 0, right: 0, bottom: 0, p: 1, gap: 1, pb: "calc(8px + env(safe-area-inset-bottom))", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button fullWidth component={NavLink} to="/login" startIcon={<LoginRoundedIcon />} variant="outlined">Sign in</Button>
+          <Button fullWidth component={NavLink} to="/register" startIcon={<PersonAddRoundedIcon />} variant="contained">Create account</Button>
+        </Paper>
+      )}
+    </>
   );
 };
 

@@ -21,7 +21,7 @@ const CommunitySection = ({ communities }: CommunitySectionProps) => {
     <Card
       elevation={2}
       sx={{
-        borderRadius: 4,
+        borderRadius: "10px",
       }}
     >
       <CardContent sx={{ p: 4 }}>
@@ -49,13 +49,10 @@ const CommunitySection = ({ communities }: CommunitySectionProps) => {
                 key={community.id}
                 variant="outlined"
                 sx={{
-                  borderRadius: 3,
+                  borderRadius: "10px",
                   textAlign: "center",
-                  transition: ".25s",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: 6,
-                  },
+                  transition: "border-color 160ms ease",
+                  "&:hover": { borderColor: "primary.main" },
                 }}
               >
                 <CardContent
@@ -90,7 +87,7 @@ const CommunitySection = ({ communities }: CommunitySectionProps) => {
                       variant="contained"
                       sx={{
                         mt: 1,
-                        borderRadius: 3,
+                        borderRadius: "10px",
                         textTransform: "none",
                       }}
                     >

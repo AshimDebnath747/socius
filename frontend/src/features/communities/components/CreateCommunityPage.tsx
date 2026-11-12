@@ -21,9 +21,10 @@ import AvatarCropDialog from "../../profile/AvatarCropDialog.tsx";
 
 type CreateCommunityPageProps = {
   onSuccess: () => void;
+  onCancel: () => void;
 };
 
-const CreateCommunityPage = ({ onSuccess }: CreateCommunityPageProps) => {
+const CreateCommunityPage = ({ onSuccess, onCancel }: CreateCommunityPageProps) => {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
@@ -111,18 +112,22 @@ const CreateCommunityPage = ({ onSuccess }: CreateCommunityPageProps) => {
   };
 
   return (
-    <Box display="flex" justifyContent="center" mt={2} mb={3}>
+    <Box display="flex" justifyContent="center" alignItems="flex-start" mt={{ xs: 1, sm: 3 }} mb={3} px={{ xs: 1.5, sm: 2 }} sx={{ overflowY: "auto", width: "100%" }}>
       <Paper
-        elevation={4}
+        elevation={0}
         sx={{
-          width: 650,
-          p: 4,
-          borderRadius: 3,
+          width: "100%",
+          maxWidth: 620,
+          p: { xs: 2, sm: 4 },
+          borderRadius: { xs: "10px", sm: "10px" },
+          border: "1px solid",
+          borderColor: "divider",
         }}
       >
-        <Typography variant="h5" fontWeight="bold" mb={3}>
-          Create Community
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box><Typography variant="h5">Create a community</Typography><Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>Set up a space for people to share and help.</Typography></Box>
+          <Button onClick={onCancel} color="inherit">Cancel</Button>
+        </Stack>
 
         <Stack component="form" spacing={3} onSubmit={handleSubmit}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -154,7 +159,7 @@ const CreateCommunityPage = ({ onSuccess }: CreateCommunityPageProps) => {
                   bottom: 0,
                   right: 0,
                   bgcolor: "primary.main",
-                  color: "white",
+                  color: "primary.contrastText",
                   "&:hover": {
                     bgcolor: "primary.dark",
                   },

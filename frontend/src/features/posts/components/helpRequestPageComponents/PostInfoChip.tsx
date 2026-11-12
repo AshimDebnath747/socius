@@ -58,7 +58,7 @@ const PostInfoChips = ({
         <Card
             elevation={0}
             sx={{
-                borderRadius: 4,
+                borderRadius: "10px",
                 border: "1px solid",
                 borderColor: "divider",
             }}

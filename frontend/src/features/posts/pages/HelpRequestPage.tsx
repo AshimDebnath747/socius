@@ -44,7 +44,6 @@ const PostPage = () => {
           image: res.data.data.image,
         };
         setRequest(post);
-        console.log(request);
       } catch (err) {
         console.error(err);
       } finally {
@@ -130,7 +129,7 @@ const PostPage = () => {
                     width: "100%",
                     maxHeight: 450,
                     objectFit: "cover",
-                    borderRadius: 3,
+                    borderRadius: "10px",
                     boxShadow: 3,
                   }}
                 />

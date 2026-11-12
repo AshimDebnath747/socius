@@ -19,6 +19,7 @@ type CommunitySidebarProps = {
   communities: Community[];
   loading: boolean;
   showCreate: boolean;
+  selectedCommunityId?: number;
   onSelectCommunity: (community: Community) => void;
   onToggleCreateCommunity: () => void;
 };
@@ -27,16 +28,19 @@ const CommunitySidebar = ({
   communities,
   loading,
   showCreate,
+  selectedCommunityId,
   onSelectCommunity,
   onToggleCreateCommunity,
 }: CommunitySidebarProps) => {
   return (
     <Box
       sx={{
-        width: 320,
-        minWidth: 320,
+        width: { xs: "100%", md: 320 },
+        minWidth: { xs: 0, md: 320 },
         height: "100%",
-        borderRight: "1px solid #ddd",
+        borderRight: { xs: 0, md: "1px solid" },
+        borderColor: "divider",
+        bgcolor: "background.paper",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -45,14 +49,15 @@ const CommunitySidebar = ({
       {/* Header */}
       <Box
         sx={{
-          p: 2,
-          borderBottom: "1px solid #ddd",
+          p: 2.5,
+          borderBottom: "1px solid",
+          borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <Typography variant="h5" fontWeight="bold">
+        <Typography variant="h5">
           Communities
         </Typography>
 
@@ -85,6 +90,8 @@ const CommunitySidebar = ({
             <ListItemButton
               key={community.id}
               onClick={() => onSelectCommunity(community)}
+              selected={selectedCommunityId === community.id}
+              sx={{ mx: 1, my: 0.5, borderRadius: "10px", py: 1.25, "&.Mui-selected": { bgcolor: "action.selected", "&:hover": { bgcolor: "action.selected" } } }}
             >
               <ListItemAvatar>
                 <Avatar

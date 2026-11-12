@@ -73,22 +73,23 @@ export default function ProfileHeader({
 
   return (
     <Paper
-      elevation={3}
+      elevation={0}
       sx={{
         overflow: "hidden",
-        borderRadius: 4,
+        borderRadius: "10px",
+        border: "1px solid",
+        borderColor: "divider",
       }}
     >
       {/* Cover */}
       <Box
         sx={{
-          height: 180,
-          background:
-            "linear-gradient(135deg,#2563EB 0%,#4F46E5 45%,#7C3AED 100%)",
+          height: { xs: 112, sm: 148 },
+          bgcolor: "action.selected",
         }}
       />
 
-      <Box sx={{ px: 4, pb: 4 }}>
+      <Box sx={{ px: { xs: 2.5, sm: 4 }, pb: { xs: 2.5, sm: 4 } }}>
         <Stack
           direction={{
             xs: "column",
@@ -132,8 +133,8 @@ export default function ProfileHeader({
                 sx={{
                   width: 170,
                   height: 170,
-                  border: "5px solid white",
-                  boxShadow: 4,
+                  border: "5px solid",
+                  borderColor: "background.paper",
                   cursor: editMode ? "pointer" : "default",
                 }}
               />
@@ -154,7 +155,7 @@ export default function ProfileHeader({
                     bottom: 5,
                     right: 5,
                     bgcolor: "primary.main",
-                    color: "white",
+                    color: "primary.contrastText",
                     "&:hover": {
                       bgcolor: "primary.dark",
                     },
@@ -239,13 +240,13 @@ export default function ProfileHeader({
             color="primary"
             onClick={() => setEditMode(true)}
             sx={{
-              bgcolor: "white",
-              color: "gray",
+              bgcolor: "background.paper",
+              color: "text.secondary",
               width: 40,
               height: 40,
 
               "&:hover": {
-                bgcolor: "#f5f5f5",
+                bgcolor: "background.default",
               },
             }}
           >

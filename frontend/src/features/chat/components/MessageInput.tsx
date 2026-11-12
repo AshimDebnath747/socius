@@ -41,24 +41,15 @@ export default function MessageInput({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   /*
-   * Create a temporary browser URL for the selected
-   * image/video so it can be previewed before upload.
+   * Clean up the temporary object URL when component unmounts.
    */
   useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl(null);
-      return;
-    }
-
-    const url = URL.createObjectURL(selectedFile);
-
-    setPreviewUrl(url);
-
-    // Clean up the temporary object URL
     return () => {
-      URL.revokeObjectURL(url);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
     };
-  }, [selectedFile]);
+  }, [previewUrl]);
 
   /*
    * Open the system file picker.
@@ -77,7 +68,9 @@ export default function MessageInput({
 
   if (!file) return;
 
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
   setSelectedFile(file);
+  setPreviewUrl(URL.createObjectURL(file));
 
   e.target.value = "";
 };
@@ -86,7 +79,9 @@ export default function MessageInput({
    * Remove selected media.
    */
   const handleRemoveFile = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSelectedFile(null);
+    setPreviewUrl(null);
     setMediaError(null);
   };
 
@@ -105,12 +100,14 @@ export default function MessageInput({
      */
 
     if (selectedFile && onSendMedia) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       await onSendMedia(
         selectedFile,
         trimmed
       );
 
       setSelectedFile(null);
+      setPreviewUrl(null);
 
       setText("");
 
@@ -202,7 +199,7 @@ export default function MessageInput({
               maxWidth: 360,
               height: 200,
               overflow: "hidden",
-              borderRadius: "14px",
+              borderRadius: "10px",
               bgcolor: "#000",
               border: `1px solid ${chatColors.line}`,
             }}
@@ -363,7 +360,7 @@ export default function MessageInput({
             px: 2,
             py: 1,
             bgcolor: chatColors.bg,
-            borderRadius: "18px",
+            borderRadius: "10px",
             border: `1px solid ${chatColors.line}`,
             "&.Mui-focused": {
               borderColor: chatColors.primary,
@@ -386,7 +383,7 @@ export default function MessageInput({
                 : chatColors.line,
             color:
               canSend
-                ? "#FFFFFF"
+                ? chatColors.onPrimary
                 : chatColors.inkSoft,
             width: 40,
             height: 40,

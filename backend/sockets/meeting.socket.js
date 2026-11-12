@@ -30,7 +30,11 @@ const getSessionForParticipant = async (sessionId, userId) => {
 };
 
 export const registerMeetingEvents = (io, socket) => {
-  socket.on("join-meeting", async (sessionId, acknowledge = () => {}) => {
+  socket.on("join-meeting", async (sessionId, initialMediaState = {}, acknowledge = () => {}) => {
+    if (typeof initialMediaState === "function") {
+      acknowledge = initialMediaState;
+      initialMediaState = {};
+    }
     try {
       const session = await getSessionForParticipant(sessionId, socket.user.id);
       if (!session || session.status !== "active") {
@@ -47,11 +51,19 @@ export const registerMeetingEvents = (io, socket) => {
 
       await serializeMeetingJoin(session.id, async () => {
         const room = meetingRoom(session.id);
+        socket.data.meetingMediaState = {
+          micEnabled: typeof initialMediaState.micEnabled === "boolean" ? initialMediaState.micEnabled : true,
+          cameraEnabled: typeof initialMediaState.cameraEnabled === "boolean" ? initialMediaState.cameraEnabled : true,
+        };
         const sockets = await io.in(room).fetchSockets();
         const firstParticipant = sockets.length === 0;
         const existingUsers = sockets
           .filter((participant) => String(participant.user.id) !== String(socket.user.id))
-          .map((participant) => ({ userId: participant.user.id, socketId: participant.id }));
+          .map((participant) => ({
+            userId: participant.user.id,
+            socketId: participant.id,
+            ...(participant.data.meetingMediaState ?? { micEnabled: true, cameraEnabled: true }),
+          }));
 
         socket.join(room);
         socket.data.meetingSessionId = String(session.id);
@@ -59,6 +71,7 @@ export const registerMeetingEvents = (io, socket) => {
         socket.to(room).emit("new-user-joined", {
           userId: socket.user.id,
           socketId: socket.id,
+          ...socket.data.meetingMediaState,
         });
         if (firstParticipant) {
           const otherParticipantId = String(session.requester_id) === String(socket.user.id)
@@ -75,6 +88,23 @@ export const registerMeetingEvents = (io, socket) => {
       console.error("Unable to join meeting:", error);
       acknowledge({ success: false, message: "Unable to join this meeting." });
     }
+  });
+
+  socket.on("meeting-media-state", (mediaState = {}) => {
+    const sessionId = socket.data.meetingSessionId;
+    if (!sessionId) return;
+
+    const currentState = socket.data.meetingMediaState ?? { micEnabled: true, cameraEnabled: true };
+    socket.data.meetingMediaState = {
+      micEnabled: typeof mediaState.micEnabled === "boolean" ? mediaState.micEnabled : currentState.micEnabled,
+      cameraEnabled: typeof mediaState.cameraEnabled === "boolean" ? mediaState.cameraEnabled : currentState.cameraEnabled,
+    };
+
+    socket.to(meetingRoom(sessionId)).emit("meeting-media-state", {
+      socketId: socket.id,
+      userId: socket.user.id,
+      ...socket.data.meetingMediaState,
+    });
   });
 
   const forwardToMeetingPeer = (event, payload, forwardedPayload) => {

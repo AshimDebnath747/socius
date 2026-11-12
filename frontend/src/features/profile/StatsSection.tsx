@@ -54,13 +54,9 @@ const stats = [
           <Card
             elevation={2}
             sx={{
-              borderRadius: 4,
-              transition: ".25s",
-
-              "&:hover": {
-                transform: "translateY(-5px)",
-                boxShadow: 8,
-              },
+              borderRadius: "10px",
+              transition: "border-color 160ms ease",
+              "&:hover": { borderColor: "primary.main" },
             }}
           >
             <CardContent>

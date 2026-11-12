@@ -9,29 +9,32 @@ type ImageUploadProps = {
 };
 
 const ImageUpload = ({ image, onImageChange }: ImageUploadProps) => {
-  // const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
-  useEffect(() => {
-  if (!image) {
-    setPreview("");
+  const [prevImage, setPrevImage] = useState<File | null>(image);
+
+  if (prevImage !== image) {
+    setPrevImage(image);
+    if (!image && preview) {
+      URL.revokeObjectURL(preview);
+      setPreview("");
+    }
   }
-}, [image]);
+
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
+    const file = e.target.files?.[0] ?? null;
     onImageChange(file);
-    const previewUrl = URL.createObjectURL(file);
-    setPreview(previewUrl);
-    useEffect(() => {
-      return () => {
-        if (preview) {
-          URL.revokeObjectURL(preview);
-        }
-      };
-    }, [preview]);
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+    setPreview(file ? URL.createObjectURL(file) : "");
   };
 
   return (
@@ -44,7 +47,7 @@ const ImageUpload = ({ image, onImageChange }: ImageUploadProps) => {
         sx={{
           width: "100%",
           height: 250,
-          borderRadius: 3,
+          borderRadius: "10px",
           border: "2px dashed",
           borderColor: "divider",
           overflow: "hidden",

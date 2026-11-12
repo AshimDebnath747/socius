@@ -1,5 +1,5 @@
-import { Alert, Box, Snackbar, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Alert, Box, IconButton, Snackbar, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { useCallback, useEffect, useState } from "react";
 
 import CommunitySidebar from "../communities/components/communitiesSidebar";
 import CreateCommunityPage from "../communities/components/CreateCommunityPage";
@@ -11,6 +11,7 @@ import CommunityChatWindow from "./components/CommunityChatWindow";
 import MessageInput from "../chat/components/MessageInput";
 import ChatHeader from "../chat/components/ChatHeader";
 import CommunityDashboard from "./components/communityDashboard";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -19,6 +20,8 @@ const user: string | null = localStorage.getItem("user");
 let CURRENT_USER_ID: string = "";
 if (user) CURRENT_USER_ID = String(JSON.parse(user).id);
 const CommunityPage = () => {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [messages, setMessages] = useState<CommunityMessage[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,7 +32,7 @@ const CommunityPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  const fetchCommunities = async () => {
+  const fetchCommunities = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -40,7 +43,7 @@ const CommunityPage = () => {
       setSelectedCommunity((prev) => {
         if (data.length === 0) return null;
 
-        if (!prev) return data[0];
+        if (!prev) return isDesktop ? data[0] : null;
 
         const exists = data.some((c: { id: number }) => c.id === prev.id);
 
@@ -51,7 +54,7 @@ const CommunityPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isDesktop]);
   useEffect(() => {
     messages.forEach((msg) => {
       if (msg.senderId !== CURRENT_USER_ID && !msg.isRead) {
@@ -205,7 +208,7 @@ const CommunityPage = () => {
   }, [selectedCommunity]);
   useEffect(() => {
     fetchCommunities();
-  }, []);
+  }, [fetchCommunities]);
 
   const handleCommunityCreated = async () => {
     await fetchCommunities();
@@ -255,18 +258,23 @@ const CommunityPage = () => {
     <Box
       sx={{
         display: "flex",
-        height: "calc(100vh - 64px)",
+        height: { xs: "calc(100dvh - 124px - env(safe-area-inset-bottom))", md: "calc(100vh - 68px)" },
         minHeight: 0,
         overflow: "hidden",
       }}
     >
-      <CommunitySidebar
-        communities={communities}
-        loading={loading}
-        showCreate={showCreate}
-        onSelectCommunity={setSelectedCommunity}
-        onToggleCreateCommunity={() => setShowCreate((prev) => !prev)}
-      />
+      {!showCreate && (
+        <Box sx={{ display: { xs: selectedCommunity ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 320 }, flexShrink: 0 }}>
+          <CommunitySidebar
+            communities={communities}
+            loading={loading}
+            showCreate={showCreate}
+            selectedCommunityId={selectedCommunity?.id}
+            onSelectCommunity={(community) => { setSelectedCommunity(community); setShowDashboard(false); }}
+            onToggleCreateCommunity={() => setShowCreate((prev) => !prev)}
+          />
+        </Box>
+      )}
 
       <Box
         sx={{
@@ -277,6 +285,7 @@ const CommunityPage = () => {
           flexDirection: "column",
           overflow: "hidden",
           position: "relative",
+          ...(showCreate || selectedCommunity ? {} : { display: { xs: "none", md: "flex" } }),
         }}
       >
         <Snackbar
@@ -295,7 +304,7 @@ const CommunityPage = () => {
         </Snackbar>
 
         {showCreate ? (
-          <CreateCommunityPage onSuccess={handleCommunityCreated} />
+          <CreateCommunityPage onSuccess={handleCommunityCreated} onCancel={() => setShowCreate(false)} />
         ) : selectedCommunity ? (
           <Box
             sx={{
@@ -307,6 +316,10 @@ const CommunityPage = () => {
               width: "100%",
             }}
           >
+            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}>
+              <IconButton onClick={() => setSelectedCommunity(null)} aria-label="Back to communities" sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}>
+                <ArrowBackIcon />
+              </IconButton>
             <ChatHeader
               otherUser={{
                 name: selectedCommunity.name || "Loading...",
@@ -315,6 +328,7 @@ const CommunityPage = () => {
               }}
               onClick={() => setShowDashboard(true)}
             />
+            </Box>
             {showDashboard ? (
               <CommunityDashboard
                 community={selectedCommunity}
@@ -354,7 +368,7 @@ const CommunityPage = () => {
               minHeight: 0,
             }}
           >
-            <Typography variant="h5">Select a conversation</Typography>
+              <Typography variant="h6" color="text.secondary">Choose a community to join the conversation</Typography>
           </Box>
         )}
       </Box>

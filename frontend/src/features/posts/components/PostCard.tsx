@@ -2,15 +2,15 @@ import {
   Avatar,
   Box,
   Card,
+  CardActionArea,
   CardContent,
   Chip,
   Stack,
   Typography,
 } from "@mui/material";
 
-import CommentIcon from "@mui/icons-material/Comment";
-import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ChatIcon from "@mui/icons-material/Chat";
 import CallIcon from "@mui/icons-material/Call";
@@ -51,22 +51,14 @@ const PostCard = ({ post, onClick }: Props) => {
 
   return (
     <Card
-      onClick={onClick}
       sx={{
-        mb: 3,
-        borderRadius: 5,
-        cursor: "pointer",
-        transition: "all .25s ease",
-        border: "1px solid",
-        borderColor: "divider",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: 8,
-          borderColor: "primary.main",
-        },
+        mb: 2,
+        transition: "border-color 160ms ease, background-color 160ms ease",
+        "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" },
       }}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardActionArea onClick={onClick} sx={{ textAlign: "left", "&:hover .MuiCardActionArea-focusHighlight": { opacity: 0.03 } }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.75 } }}>
         {/* Header */}
         <Stack
           direction="row"
@@ -74,7 +66,7 @@ const PostCard = ({ post, onClick }: Props) => {
           alignItems="center"
           mb={2}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center" minWidth={0}>
             <Avatar
               src={`${import.meta.env.VITE_BACKEND_URL}${post.avatar}`}
               sx={{ bgcolor: "primary.main" }}
@@ -83,25 +75,21 @@ const PostCard = ({ post, onClick }: Props) => {
             </Avatar>
 
             <Box>
-              <Typography fontWeight={700}>{post.name}</Typography>
+              <Typography fontWeight={600} noWrap>{post.name}</Typography>
 
-              <Typography variant="body2" color="text.secondary">
-                Help Request
-              </Typography>
+              <Typography variant="body2" color="text.secondary">Help request</Typography>
             </Box>
           </Stack>
 
           <Stack direction="row" spacing={0.5} alignItems="center">
             <AccessTimeIcon fontSize="small" color="disabled" />
 
-            <Typography variant="body2" color="text.secondary">
-              {new Date(post.createdAt).toLocaleDateString()}
-            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>{new Date(post.createdAt).toLocaleDateString()}</Typography>
           </Stack>
         </Stack>
 
         {/* Title */}
-        <Typography variant="h5" fontWeight={700} mb={2}>
+        <Typography variant="h5" fontWeight={600} mb={1.5}>
           {post.title}
         </Typography>
         {post.image && (
@@ -113,7 +101,7 @@ const PostCard = ({ post, onClick }: Props) => {
               width: "100%",
               maxHeight: 350,
               objectFit: "cover",
-              borderRadius: 3,
+              borderRadius: "10px",
               mb: 2,
               border: "1px solid",
               borderColor: "divider",
@@ -143,31 +131,22 @@ const PostCard = ({ post, onClick }: Props) => {
         <Typography
           color="text.secondary"
           sx={{
-            mb: 3,
-            lineHeight: 1.8,
+            mb: 2,
+            lineHeight: 1.65,
           }}
         >
-          {post.description.split(" ").slice(0, 10).join(" ")}
-          {post.description.split(" ").length > 10 && "..."}
+          {post.description.split(" ").slice(0, 28).join(" ")}
+          {post.description.split(" ").length > 28 && "…"}
         </Typography>
 
         {/* Footer */}
-        <Stack direction="row" spacing={1}>
-          <Chip
-            icon={<CommentIcon />}
-            label="Comment"
-            clickable
-            variant="outlined"
-          />
-
-          <Chip
-            icon={<AlternateEmailIcon />}
-            label="Tag User"
-            clickable
-            variant="outlined"
-          />
+        <Stack direction="row" justifyContent="flex-end">
+          <Typography color="primary.main" variant="body2" fontWeight={600} sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+            View request <ArrowForwardIcon sx={{ fontSize: 18 }} />
+          </Typography>
         </Stack>
       </CardContent>
+      </CardActionArea>
     </Card>
   );
 };

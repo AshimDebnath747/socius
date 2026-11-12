@@ -1,7 +1,7 @@
 import ChatHeader from "./components/ChatHeader";
 import ChatWindow from "./components/ChatWindow";
 import MessageInput from "./components/MessageInput";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, IconButton, Typography } from "@mui/material";
 import SessionSidebar from "./components/SessionSidebar";
 import { useEffect, useState } from "react";
 import type { Session } from "../../types/session";
@@ -11,6 +11,7 @@ import { type Message } from "./types";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import VideoCallIcon from "@mui/icons-material/VideoCall";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 const API = import.meta.env.VITE_BACKEND_URL;
 const socket = io(API, {
   withCredentials: true,
@@ -220,12 +221,15 @@ const ChatPage = () => {
     <Box
       sx={{
         display: "flex",
-        height: "calc(100vh - 64px)",
+        height: { xs: "calc(100dvh - 124px - env(safe-area-inset-bottom))", md: "calc(100vh - 68px)" },
+        bgcolor: "background.default",
         minHeight: 0,
         overflow: "hidden",
       }}
     >
-      <SessionSidebar onSelectSession={setSelectedSession} />
+      <Box sx={{ display: { xs: selectedSession ? "none" : "flex", md: "flex" }, width: { xs: "100%", md: 340 }, flexShrink: 0 }}>
+        <SessionSidebar onSelectSession={setSelectedSession} selectedSessionId={selectedSession?.id} />
+      </Box>
 
       <Box
         sx={{
@@ -234,6 +238,7 @@ const ChatPage = () => {
           minHeight: 0,
           display: "flex",
           overflow: "hidden",
+          ...(selectedSession ? {} : { display: { xs: "none", md: "flex" } }),
         }}
       >
         {selectedSession ? (
@@ -247,7 +252,10 @@ const ChatPage = () => {
               overflow: "hidden",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "#fff", borderBottom: "1px solid #e5e7eb", pr: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider", pr: { xs: 1, sm: 2 } }}>
+              <IconButton onClick={() => setSelectedSession(null)} aria-label="Back to conversations" sx={{ display: { xs: "inline-flex", md: "none" }, ml: 0.5 }}>
+                <ArrowBackIcon />
+              </IconButton>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <ChatHeader
                   otherUser={{
@@ -262,9 +270,10 @@ const ChatPage = () => {
                 startIcon={<VideoCallIcon />}
                 disabled={selectedSession.status !== "active" || selectedSession.mode !== "call"}
                 onClick={() => navigate(`/meeting/${selectedSession.id}`)}
-                sx={{ flexShrink: 0, ml: 1 }}
+                sx={{ flexShrink: 0, ml: 1, px: { xs: 1.25, sm: 2 }, fontSize: { xs: 12, sm: 14 } }}
               >
-                Start video call
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Start video call</Box>
+                <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>Call</Box>
               </Button>
             </Box>
 
@@ -298,7 +307,7 @@ const ChatPage = () => {
               minHeight: 0,
             }}
           >
-            <Typography variant="h5">Select a conversation</Typography>
+            <Typography variant="h6" color="text.secondary">Select a conversation to view messages</Typography>
           </Box>
         )}
       </Box>

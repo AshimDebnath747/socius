@@ -7,6 +7,8 @@ import {
   Divider,
   InputAdornment,
   IconButton,
+  Paper,
+  Alert,
 } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
@@ -32,12 +34,16 @@ interface LoginFormValues {
 const LoginPage = () => {
   const { register, handleSubmit } = useForm<LoginFormValues>();
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const API = import.meta.env.VITE_BACKEND_URL;
 
   // ✅ LOGIN FUNCTION (FIXED)
   const onSubmit = async (data: LoginFormValues) => {
+    setErrorMessage("");
+    setSubmitting(true);
     try {
       const res = await axios.post(
         `${API}/api/auth/login`,
@@ -52,8 +58,10 @@ const LoginPage = () => {
       localStorage.setItem("user", JSON.stringify(res.data.data));
       window.location.assign("/"); // force reload so auth check works
     } catch (error) {
-      const message = "wrong credetials bro!";
-      alert(message);
+      console.error(error);
+      setErrorMessage("We couldn’t sign you in. Check your email and password, then try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -63,48 +71,49 @@ const LoginPage = () => {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
       <Box
         sx={{
-          minHeight: "100vh",
+          minHeight: "calc(100dvh - 136px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          py: { xs: 3, sm: 6 },
         }}
       >
-        <Box
+        <Paper
           sx={{
             width: "100%",
-            p: 4,
-            borderRadius: 2,
-            border: "1px solid #e0e0e0",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-            background: "#fff",
+            maxWidth: 480,
+            p: { xs: 2.5, sm: 4 },
+            borderRadius: { xs: "10px", sm: "10px" },
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 18px 54px rgba(60,64,67,.10)",
           }}
         >
           <Typography
-            variant="h5"
-            sx={{ fontWeight: 600, textAlign: "center", mb: 1 }}
+            variant="h4"
+            sx={{ fontWeight: 600, mb: 1 }}
           >
-            Login
+            Welcome back
           </Typography>
 
           <Typography
             sx={{
-              textAlign: "center",
               color: "text.secondary",
-              fontSize: 14,
               mb: 3,
             }}
           >
-            Enter your credentials to continue
+            Sign in to continue to your conversations and communities.
           </Typography>
+
+          {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
           {/* Register Button */}
           <Button
             variant="text"
-            fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mb: 2, px: 0 }}
             onClick={() => navigate("/register")}
           >
             Register
@@ -115,7 +124,7 @@ const LoginPage = () => {
             <TextField
               label="Email"
               fullWidth
-              margin="normal"
+              margin="dense"
               {...register("email", { required: true })}
               InputProps={{
                 startAdornment: (
@@ -130,7 +139,7 @@ const LoginPage = () => {
             <TextField
               label="Password"
               fullWidth
-              margin="normal"
+              margin="dense"
               type={showPassword ? "text" : "password"}
               {...register("password", { required: true })}
               InputProps={{
@@ -160,14 +169,13 @@ const LoginPage = () => {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={submitting}
               sx={{
-                mt: 3,
+                mt: 2.5,
                 py: 1.4,
-                textTransform: "none",
-                fontWeight: 600,
               }}
             >
-              Login
+              {submitting ? "Signing in…" : "Sign in"}
             </Button>
 
             <Divider sx={{ my: 3 }}>or</Divider>
@@ -195,7 +203,7 @@ const LoginPage = () => {
               Continue with Google
             </Button>
           </Box>
-        </Box>
+        </Paper>
       </Box>
     </Container>
   );

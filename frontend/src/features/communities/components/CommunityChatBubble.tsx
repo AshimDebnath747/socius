@@ -98,10 +98,10 @@ export default function CommunityChatBubble({
 
           bgcolor: isOwn
             ? chatColors.primary
-            : "#fff",
+            : chatColors.surface,
 
           color: isOwn
-            ? "#fff"
+            ? chatColors.onPrimary
             : chatColors.ink,
 
           border: isOwn
@@ -111,7 +111,7 @@ export default function CommunityChatBubble({
           boxShadow:
             "0 2px 8px rgba(0,0,0,.06)",
 
-          borderRadius: 3,
+          borderRadius: "10px",
 
           ...(isLastInGroup
             ? isOwn

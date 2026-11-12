@@ -1,6 +1,11 @@
-/* Minimal global styles */
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; }
-body { margin: 0; font-family: Roboto, Helvetica, Arial, sans-serif; }
-/* Ensure app stretches full width */
-#root { width: 100%; }
+html, body, #root { min-height: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; font-family: Roboto, "Google Sans", Inter, Arial, sans-serif; }
+#root { width: 100%; min-height: 100vh; }
+button, input, textarea { font: inherit; }
+img, video { max-width: 100%; }
+:focus-visible { outline: 3px solid #4285f4; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

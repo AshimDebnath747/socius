@@ -157,7 +157,7 @@ const CommunityDashboard = ({
                 elevation={4}
                 sx={{
                     p: 4,
-                    borderRadius: 4,
+                    borderRadius: "10px",
                     mb: 4,
                 }}
             >
@@ -390,7 +390,7 @@ const CommunityDashboard = ({
                         elevation={3}
                         sx={{
                             p: 3,
-                            borderRadius: 4,
+                            borderRadius: "10px",
                         }}
                     >
                         <Typography

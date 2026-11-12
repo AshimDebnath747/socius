@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Box,
+  Alert,
   Button,
   Container,
   FormControl,
@@ -33,6 +34,8 @@ export default function CreateHelpRequestForm() {
     communityId: "",
   });
   const [image, setImage] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement> | any) => {
@@ -44,6 +47,8 @@ export default function CreateHelpRequestForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage("");
 
     const payload = new FormData();
 
@@ -82,26 +87,34 @@ export default function CreateHelpRequestForm() {
         },
       });
     } catch (err) {
-      console.log(err);
+      console.error("Could not create help request:", err);
+      setErrorMessage("Your request could not be created. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ py: { xs: 3, md: 5 }, px: { xs: 2, sm: 3 } }}>
       <Box
         component="form"
         onSubmit={handleSubmit}
         sx={{
-          mt: 5,
-          p: 4,
-          borderRadius: 3,
-          boxShadow: 3,
+          p: { xs: 2.5, sm: 4 },
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: "10px",
           bgcolor: "background.paper",
         }}
       >
         <Typography variant="h4" gutterBottom>
           Create Help Request
         </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          Add enough context for another student to understand where you need help.
+        </Typography>
+
+        {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
         <Stack spacing={3}>
           <TextField
@@ -172,8 +185,8 @@ export default function CreateHelpRequestForm() {
             fullWidth
           />
           <ImageUpload image={image} onImageChange={setImage} />
-          <Button type="submit" variant="contained" size="large">
-            Create Request
+          <Button type="submit" variant="contained" size="large" disabled={submitting}>
+            {submitting ? "Creating request…" : "Create request"}
           </Button>
         </Stack>
       </Box>

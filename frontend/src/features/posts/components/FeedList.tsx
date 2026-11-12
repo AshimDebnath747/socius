@@ -23,7 +23,7 @@ const FeedList = ({ posts, search }: Props) => {
     );
 
     if (filtered.length === 0)
-        return <EmptyFeed />;
+        return <EmptyFeed searching={Boolean(search)} />;
 
     return (
         <Box

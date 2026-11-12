@@ -33,7 +33,7 @@ const HelpRequestAction = ({
         <Card
             elevation={0}
             sx={{
-                borderRadius: 5,
+                borderRadius: "10px",
                 border: "1px solid",
                 borderColor: "divider",
             }}
@@ -100,7 +100,7 @@ const HelpRequestAction = ({
                     sx={{
                         mt: 4,
                         py: 1.6,
-                        borderRadius: 3,
+                        borderRadius: "10px",
                         fontWeight: 700,
                         fontSize: "1rem",
                         textTransform: "none",

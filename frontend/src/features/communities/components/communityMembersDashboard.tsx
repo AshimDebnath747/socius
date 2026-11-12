@@ -140,7 +140,7 @@ const CommunityMembers = ({ communityId }: Props) => {
     };
 
     return (
-        <Paper elevation={3} sx={{ p: 3, borderRadius: 4 }}>
+        <Paper elevation={3} sx={{ p: 3, borderRadius: "10px" }}>
             <Typography variant="h5" gutterBottom>
                 Community Members
             </Typography>

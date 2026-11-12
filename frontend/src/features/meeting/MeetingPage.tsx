@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
-  AppBar,
+  Avatar,
   Box,
   Button,
   CircularProgress,
   IconButton,
   Paper,
   Stack,
-  Toolbar,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -19,15 +18,16 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import CameraswitchIcon from "@mui/icons-material/Cameraswitch";
 import CallEndIcon from "@mui/icons-material/CallEnd";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { socket } from "../../socket";
 import api from "../../lib/axios";
+import { getNextUserById, getUserProfile } from "../../services/user.service";
 
-type PeerPayload = { socketId: string; userId: string | number };
+type PeerPayload = { socketId: string; userId: string | number; micEnabled?: boolean; cameraEnabled?: boolean };
 type SignalOffer = { offer: RTCSessionDescriptionInit; callerSocketId: string };
 type SignalAnswer = { answer: RTCSessionDescriptionInit; responderSocketId: string };
 type SignalCandidate = { candidate: RTCIceCandidateInit; senderSocketId: string };
 type RemoteVideo = { socketId: string; stream: MediaStream };
+type RemoteMediaState = { micEnabled: boolean; cameraEnabled: boolean };
 
 const describeMediaError = (error: unknown) => {
   if (!window.isSecureContext) {
@@ -60,6 +60,74 @@ const isMobileDevice = () =>
   /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
+const useSpeakingActivity = (stream: MediaStream | null, micEnabled: boolean, cameraEnabled: boolean) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    if (!stream || cameraEnabled || !micEnabled || !stream.getAudioTracks().some((track) => track.readyState === "live")) {
+      return;
+    }
+
+    let audioContext: AudioContext | null = null;
+    let animationFrame = 0;
+    let speaking = false;
+    let activeFrames = 0;
+    let quietFrames = 0;
+    try {
+      audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      const samples = new Uint8Array(analyser.fftSize);
+      void audioContext.resume().catch(() => undefined);
+
+      const readAudioLevel = () => {
+        analyser.getByteTimeDomainData(samples);
+        let squaredTotal = 0;
+        for (const sample of samples) {
+          const normalized = (sample - 128) / 128;
+          squaredTotal += normalized * normalized;
+        }
+        const volume = Math.sqrt(squaredTotal / samples.length);
+        if (volume > 0.045) {
+          activeFrames += 1;
+          quietFrames = 0;
+          if (!speaking && activeFrames >= 3) {
+            speaking = true;
+            setIsSpeaking(true);
+          }
+        } else if (volume < 0.025) {
+          quietFrames += 1;
+          activeFrames = 0;
+          if (speaking && quietFrames >= 30) {
+            speaking = false;
+            setIsSpeaking(false);
+          }
+        }
+        animationFrame = window.requestAnimationFrame(readAudioLevel);
+      };
+      animationFrame = window.requestAnimationFrame(readAudioLevel);
+      return () => {
+        window.cancelAnimationFrame(animationFrame);
+        source.disconnect();
+        analyser.disconnect();
+        void audioContext?.close();
+        setIsSpeaking(false);
+      };
+    } catch (cause) {
+      console.error("Could not analyze meeting audio:", cause);
+      return () => {
+        window.cancelAnimationFrame(animationFrame);
+        void audioContext?.close();
+        setIsSpeaking(false);
+      };
+    }
+  }, [cameraEnabled, micEnabled, stream]);
+
+  return !cameraEnabled && micEnabled && isSpeaking;
+};
+
 const MeetingPage = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
@@ -69,6 +137,10 @@ const MeetingPage = () => {
   const peerConnections = useRef(new Map<string, RTCPeerConnection>());
   const pendingIceCandidates = useRef(new Map<string, RTCIceCandidateInit[]>());
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
+  const [participantName, setParticipantName] = useState("Other participant");
+  const [participantAvatar, setParticipantAvatar] = useState<string | null>(null);
+  const [localProfile, setLocalProfile] = useState<{ name: string; avatar: string | null }>({ name: "You", avatar: null });
+  const [remoteMediaStates, setRemoteMediaStates] = useState<Record<string, RemoteMediaState>>({});
   const [status, setStatus] = useState("Joining meeting…");
   const [error, setError] = useState("");
   const [micEnabled, setMicEnabled] = useState(true);
@@ -78,6 +150,7 @@ const MeetingPage = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("user");
   const [switchingCamera, setSwitchingCamera] = useState(false);
+  const localIsSpeaking = useSpeakingActivity(localStreamRef.current, micEnabled, cameraEnabled);
 
   const createPeerConnection = useCallback((remoteSocketId: string) => {
     const existing = peerConnections.current.get(remoteSocketId);
@@ -127,17 +200,38 @@ const MeetingPage = () => {
       peerConnections.current.delete(socketId);
       pendingIceCandidates.current.delete(socketId);
       setRemoteVideos((videos) => videos.filter((video) => video.socketId !== socketId));
+      setRemoteMediaStates((states) => {
+        const remaining = { ...states };
+        delete remaining[socketId];
+        return remaining;
+      });
     };
-    const handleNewUser = ({ socketId }: PeerPayload) => {
+    const updateRemoteMediaState = (socketId: string, state: Partial<RemoteMediaState>) => {
+      setRemoteMediaStates((states) => ({
+        ...states,
+        [socketId]: {
+          micEnabled: state.micEnabled ?? states[socketId]?.micEnabled ?? true,
+          cameraEnabled: state.cameraEnabled ?? states[socketId]?.cameraEnabled ?? true,
+        },
+      }));
+    };
+    const handleNewUser = ({ socketId, micEnabled, cameraEnabled }: PeerPayload) => {
+      updateRemoteMediaState(socketId, { micEnabled, cameraEnabled });
       void startOffer(socketId).catch((cause: unknown) => {
         console.error("Could not start peer connection:", cause);
         setError("Could not connect to the other participant.");
       });
     };
     const handleUsersAlreadyThere = (users: PeerPayload[]) => {
+      users.forEach(({ socketId, micEnabled, cameraEnabled }) => {
+        updateRemoteMediaState(socketId, { micEnabled, cameraEnabled });
+      });
       setStatus(users.length ? "Connecting to the other participant…" : "You’re in the meeting. Waiting for the other participant…");
     };
     const handleUserLeft = ({ socketId }: { socketId: string }) => removePeer(socketId);
+    const handleRemoteMediaState = ({ socketId, micEnabled, cameraEnabled }: PeerPayload) => {
+      updateRemoteMediaState(socketId, { micEnabled, cameraEnabled });
+    };
 
     const handleOffer = async ({ offer, callerSocketId }: SignalOffer) => {
       try {
@@ -190,6 +284,7 @@ const MeetingPage = () => {
     socket.on("new-user-joined", handleNewUser);
     socket.on("users-already-in-meeting", handleUsersAlreadyThere);
     socket.on("user-left-meeting", handleUserLeft);
+    socket.on("meeting-media-state", handleRemoteMediaState);
     socket.on("webrtc-offer", handleOffer);
     socket.on("webrtc-answer", handleAnswer);
     socket.on("ice-candidate", handleIceCandidate);
@@ -200,10 +295,37 @@ const MeetingPage = () => {
       try {
         const sessionResponse = await api.get(`/api/sessions/${roomId}`);
         sessionValidated = true;
-        if (sessionResponse.data?.data?.status !== "active") {
+        const session = sessionResponse.data?.data as {
+          status?: string;
+          helper_id?: number;
+          requester_id?: number;
+        } | undefined;
+        if (session?.status !== "active") {
           setError("This session has ended and its meeting is closed.");
           setStatus("Meeting unavailable");
           return;
+        }
+        setParticipantName("Other participant");
+        setParticipantAvatar(null);
+        void getUserProfile()
+          .then((profile) => {
+            if (!cancelled && profile?.user) {
+              setLocalProfile({ name: profile.user.name || "You", avatar: profile.user.avatar ?? null });
+            }
+          })
+          .catch((cause: unknown) => {
+            console.error("Could not load your meeting profile:", cause);
+          });
+        if (session.helper_id != null && session.requester_id != null) {
+          void getNextUserById(session.helper_id, session.requester_id)
+            .then((participant) => {
+              if (cancelled || !participant) return;
+              if (participant.name) setParticipantName(participant.name);
+              setParticipantAvatar(participant.avatar ?? null);
+            })
+            .catch((cause: unknown) => {
+              console.error("Could not load meeting participant:", cause);
+            });
         }
         if (!window.isSecureContext) {
           throw new Error("Camera and microphone require a secure page.");
@@ -235,7 +357,10 @@ const MeetingPage = () => {
         localStreamRef.current = stream;
         setMediaReady(true);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        socket.emit("join-meeting", roomId, (result: { success: boolean; message?: string }) => {
+        socket.emit("join-meeting", roomId, {
+          micEnabled: stream.getAudioTracks().some((track) => track.enabled),
+          cameraEnabled: stream.getVideoTracks().some((track) => track.enabled),
+        }, (result: { success: boolean; message?: string }) => {
           if (!result.success) {
             setError(result.message ?? "Could not join this meeting.");
             setStatus("Meeting unavailable");
@@ -255,20 +380,24 @@ const MeetingPage = () => {
     if (socket.connected) void joinMeeting();
     else socket.once("connect", joinMeeting);
 
+    const currentPeers = peerConnections.current;
+    const currentPendingIce = pendingIceCandidates.current;
+
     return () => {
       cancelled = true;
       socket.off("connect", joinMeeting);
       socket.off("new-user-joined", handleNewUser);
       socket.off("users-already-in-meeting", handleUsersAlreadyThere);
       socket.off("user-left-meeting", handleUserLeft);
+      socket.off("meeting-media-state", handleRemoteMediaState);
       socket.off("webrtc-offer", handleOffer);
       socket.off("webrtc-answer", handleAnswer);
       socket.off("ice-candidate", handleIceCandidate);
       socket.off("meeting-error", handleMeetingError);
       socket.emit("leave-meeting");
-      peerConnections.current.forEach((peer) => peer.close());
-      peerConnections.current.clear();
-      pendingIceCandidates.current.clear();
+      currentPeers.forEach((peer) => peer.close());
+      currentPeers.clear();
+      currentPendingIce.clear();
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
       setMediaReady(false);
@@ -279,11 +408,13 @@ const MeetingPage = () => {
     const next = !micEnabled;
     localStreamRef.current?.getAudioTracks().forEach((track) => { track.enabled = next; });
     setMicEnabled(next);
+    socket.emit("meeting-media-state", { micEnabled: next, cameraEnabled });
   };
   const toggleCamera = () => {
     const next = !cameraEnabled;
     localStreamRef.current?.getVideoTracks().forEach((track) => { track.enabled = next; });
     setCameraEnabled(next);
+    socket.emit("meeting-media-state", { micEnabled, cameraEnabled: next });
   };
   const switchCamera = async () => {
     const currentStream = localStreamRef.current;
@@ -383,33 +514,34 @@ const MeetingPage = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "calc(100vh - 64px)", display: "flex", flexDirection: "column", bgcolor: "#111827", color: "white" }}>
-      <AppBar position="static" color="transparent" elevation={0}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={leaveMeeting} aria-label="Back to chat"><ArrowBackIcon /></IconButton>
-          <Typography variant="h6" sx={{ flex: 1 }}>Help session meeting</Typography>
-          <Typography variant="body2" color="inherit">Session {roomId}</Typography>
-        </Toolbar>
-      </AppBar>
-
-      <Box sx={{ flex: 1, p: { xs: 1.5, sm: 3 }, display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box sx={{ height: { xs: "calc(100dvh - 58px)", md: "calc(100dvh - 68px)" }, minHeight: { xs: 0, md: 420 }, display: "flex", flexDirection: "column", bgcolor: "#111318", color: "#E3E3E3", overflow: "hidden" }}>
+      <Box sx={{ flex: 1, minHeight: 0, p: { xs: 1, sm: 2.5 }, display: "flex", flexDirection: "column", gap: { xs: 1, sm: 1.5 } }}>
         {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
-        <Typography textAlign="center" color="#d1d5db">{status}</Typography>
-        <Box sx={{ flex: 1, display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" }, gap: 2, alignContent: "center" }}>
-          <Paper sx={{ position: "relative", overflow: "hidden", bgcolor: "#263244", minHeight: { xs: 230, md: 360 }, display: "grid", placeItems: "center" }}>
-            <video ref={localVideoRef} autoPlay muted playsInline style={{ display: cameraEnabled && mediaReady ? "block" : "none", width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0, transform: cameraFacing === "user" ? "scaleX(-1)" : "none" }} />
-            {(!mediaReady || !cameraEnabled) && <Typography color="#d1d5db">{mediaReady ? "Camera is off" : "Camera preview unavailable"}</Typography>}
-            <Typography sx={{ position: "absolute", left: 16, bottom: 12, textShadow: "0 1px 4px #000" }}>You</Typography>
+        <Typography textAlign="center" color="#C4C7C5" variant="body2">{status}</Typography>
+        <Box sx={{ flex: 1, minHeight: 0, position: "relative", display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gridTemplateRows: { xs: "repeat(2, minmax(0, 1fr))", md: "minmax(0, 1fr)" }, gap: { xs: 1, md: 2 }, alignContent: "stretch", alignItems: "stretch", "@media (orientation: landscape) and (max-width: 899px)": { gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gridTemplateRows: "minmax(0, 1fr)" } }}>
+          <Paper sx={{ position: "relative", order: { xs: 2, md: 1 }, width: "100%", height: "100%", minHeight: { xs: 0, md: 360 }, overflow: "hidden", bgcolor: "#20242A", display: "grid", placeItems: "center", border: "1px solid rgba(255,255,255,.14)" }}>
+            <video ref={localVideoRef} autoPlay muted playsInline style={{ display: cameraEnabled && mediaReady ? "block" : "none", width: "100%", height: "100%", objectFit: "contain", backgroundColor: "#111318", position: "absolute", inset: 0, transform: cameraFacing === "user" ? "scaleX(-1)" : "none" }} />
+            {mediaReady && !cameraEnabled && <ParticipantAvatar name={localProfile.name} avatar={localProfile.avatar} isSpeaking={localIsSpeaking} />}
+            {!mediaReady && <Typography color="#C4C7C5" variant="caption" sx={{ px: 1, textAlign: "center" }}>Preview unavailable</Typography>}
+            <Typography variant="body2" fontWeight={500} sx={{ position: "absolute", left: { xs: 6, sm: 12 }, bottom: { xs: 4, sm: 8 }, color: "#FFFFFF", textShadow: "0 1px 4px #000" }}>You</Typography>
           </Paper>
           {remoteVideos.length ? remoteVideos.map(({ socketId, stream }) => (
-            <RemoteVideoTile key={socketId} socketId={socketId} stream={stream} />
+            <RemoteVideoTile
+              key={socketId}
+              socketId={socketId}
+              stream={stream}
+              name={participantName}
+              avatar={participantAvatar}
+              cameraEnabled={remoteMediaStates[socketId]?.cameraEnabled ?? true}
+              micEnabled={remoteMediaStates[socketId]?.micEnabled ?? true}
+            />
           )) : (
-            <Paper sx={{ bgcolor: "#263244", minHeight: { xs: 230, md: 360 }, display: "grid", placeItems: "center", color: "#d1d5db" }}>
-              <Stack alignItems="center" spacing={1}><CircularProgress size={26} sx={{ color: "#d1d5db" }} /><Typography>Waiting for the other participant</Typography></Stack>
+            <Paper sx={{ order: { xs: 1, md: 2 }, bgcolor: "#191C20", minHeight: { xs: 0, md: 360 }, height: "100%", display: "grid", placeItems: "center", color: "#C4C7C5", border: "1px solid rgba(255,255,255,.1)" }}>
+              <Stack alignItems="center" spacing={1}><CircularProgress size={26} sx={{ color: "#C4C7C5" }} /><Typography>Waiting for the other participant</Typography></Stack>
             </Paper>
           )}
         </Box>
-        <Stack direction="row" justifyContent="center" spacing={2} sx={{ pb: 1 }}>
+        <Stack direction="row" justifyContent="center" spacing={{ xs: 1, sm: 1.5 }} sx={{ pb: "env(safe-area-inset-bottom)", pt: 0.5 }}>
           <Tooltip title={micEnabled ? "Mute microphone" : "Unmute microphone"}>
             <span><IconButton disabled={!mediaReady} onClick={toggleMic} aria-label={micEnabled ? "Mute microphone" : "Unmute microphone"} sx={{ bgcolor: micEnabled ? "#374151" : "#b91c1c", color: "white", "&:hover": { bgcolor: micEnabled ? "#4b5563" : "#991b1b" } }}>
               {micEnabled ? <MicIcon /> : <MicOffIcon />}
@@ -434,7 +566,18 @@ const MeetingPage = () => {
               </span>
             </Tooltip>
           )}
-          <Button onClick={leaveMeeting} variant="contained" color="error" startIcon={<CallEndIcon />}>Leave</Button>
+          <Button
+            onClick={leaveMeeting}
+            variant="contained"
+            startIcon={<CallEndIcon />}
+            sx={{
+              bgcolor: "#D93025",
+              color: "#FFFFFF",
+              "&:hover": { bgcolor: "#B3261E" },
+            }}
+          >
+            Leave
+          </Button>
           {canRetryMedia && <Button onClick={() => { setError(""); setRetryCount((count) => count + 1); }} variant="outlined" sx={{ color: "white", borderColor: "#9ca3af" }}>Retry</Button>}
         </Stack>
       </Box>
@@ -442,17 +585,93 @@ const MeetingPage = () => {
   );
 };
 
-const RemoteVideoTile = ({ socketId, stream }: RemoteVideo) => {
+const RemoteVideoTile = ({
+  socketId,
+  stream,
+  name,
+  avatar,
+  cameraEnabled,
+  micEnabled,
+}: RemoteVideo & { name: string; avatar: string | null; cameraEnabled: boolean; micEnabled: boolean }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isSpeaking = useSpeakingActivity(stream, micEnabled, cameraEnabled);
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream]);
+
   return (
-    <Paper sx={{ position: "relative", overflow: "hidden", bgcolor: "#263244", minHeight: { xs: 230, md: 360 }, display: "grid", placeItems: "center" }}>
-      <video ref={videoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
-      <Typography sx={{ position: "absolute", left: 16, bottom: 12, textShadow: "0 1px 4px #000" }}>Participant</Typography>
+    <Paper sx={{ position: "relative", order: { xs: 1, md: 2 }, width: "100%", overflow: "hidden", bgcolor: "#20242A", minHeight: { xs: 0, md: 360 }, height: "100%", display: "grid", placeItems: "center", border: "1px solid rgba(255,255,255,.1)" }}>
+      <video ref={videoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", backgroundColor: "#111318", position: "absolute", inset: 0, visibility: cameraEnabled ? "visible" : "hidden" }} />
+      {!cameraEnabled && (
+        <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", bgcolor: "#191C20" }}>
+          <ParticipantAvatar name={name} avatar={avatar} isSpeaking={isSpeaking} />
+        </Box>
+      )}
+      <Typography variant="body2" fontWeight={500} sx={{ position: "absolute", left: 16, bottom: 12, color: "#FFFFFF", textShadow: "0 1px 4px #000" }}>{name}</Typography>
+      {!micEnabled && (
+        <Box sx={{ position: "absolute", right: 12, bottom: 9, display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.5, borderRadius: "10px", bgcolor: "rgba(0,0,0,.68)", color: "#fff" }}>
+          <MicOffIcon sx={{ fontSize: 16 }} />
+          <Typography variant="caption" fontWeight={600}>Muted</Typography>
+        </Box>
+      )}
       <span hidden>{socketId}</span>
     </Paper>
+  );
+};
+
+const ParticipantAvatar = ({ name, avatar, isSpeaking }: { name: string; avatar: string | null; isSpeaking: boolean }) => {
+  const [linger, setLinger] = useState(false);
+
+  useEffect(() => {
+    if (!isSpeaking) {
+      if (!linger) return;
+      const timeout = window.setTimeout(() => setLinger(false), 600);
+      return () => window.clearTimeout(timeout);
+    }
+    const timeout = window.setTimeout(() => setLinger(true), 0);
+    return () => window.clearTimeout(timeout);
+  }, [isSpeaking, linger]);
+
+  const showWave = isSpeaking || linger;
+
+  const waveStyle = {
+    content: '""',
+    position: "absolute",
+    inset: -6,
+    border: "2px solid #A8C7FA",
+    borderRadius: "50%",
+    animation: isSpeaking ? "speaking-wave 0.6s ease-out infinite" : "speaking-wave 0.6s ease-out 1",
+    animationFillMode: "forwards",
+    pointerEvents: "none",
+  } as const;
+
+  return (
+    <Box
+      sx={{
+        width: { xs: 76, md: 112 },
+        height: { xs: 76, md: 112 },
+        borderRadius: "50%",
+        display: "grid",
+        placeItems: "center",
+        position: "relative",
+        "@keyframes speaking-wave": {
+          "0%": { transform: "scale(0.9)", opacity: 0.75 },
+          "100%": { transform: "scale(1.65)", opacity: 0 },
+        },
+        ...(showWave && {
+          "&::before, &::after": waveStyle,
+          "&::after": { ...waveStyle, animationDelay: isSpeaking ? "300ms" : "0ms" },
+        }),
+      }}
+    >
+      <Avatar
+        src={avatar ? `${import.meta.env.VITE_BACKEND_URL}${avatar}` : undefined}
+        alt={name}
+        sx={{ width: "100%", height: "100%", fontSize: { xs: 30, md: 44 }, bgcolor: "#39434E", color: "#E3E3E3", position: "relative", zIndex: 1 }}
+      >
+        {name.charAt(0).toUpperCase()}
+      </Avatar>
+    </Box>
   );
 };
 

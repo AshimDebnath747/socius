@@ -15,7 +15,7 @@ const PostDescription = ({ description }: Props) => {
             elevation={0}
             sx={{
                 height: "100%",
-                borderRadius: 5,
+                borderRadius: "10px",
                 border: "1px solid",
                 borderColor: "divider",
             }}

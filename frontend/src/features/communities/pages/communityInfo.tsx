@@ -169,24 +169,43 @@ const CommunityInfo = () => {
         <Box
             maxWidth="900px"
             mx="auto"
-            p={4}
+            px={{ xs: 2, sm: 3 }}
+            py={{ xs: 3, md: 5 }}
         >
             {/* Community Information */}
             <Paper
-                elevation={3}
+                elevation={0}
                 sx={{
-                    p: 4,
-                    borderRadius: 3,
+                    p: { xs: 2.5, sm: 4 },
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: "10px",
                     mb: 4,
                 }}
             >
+              <Box sx={{ display: "flex", alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between", gap: 2, flexDirection: { xs: "column", sm: "row" }, mb: 2 }}>
                 <Typography
                     variant="h3"
                     fontWeight={700}
-                    gutterBottom
                 >
                     {community.name}
                 </Typography>
+                {community.isPrivate && !joined ? <Button
+                    variant={requested ? "outlined" : "contained"}
+                    color={requested ? "success" : "primary"}
+                    startIcon={requested ? <CheckIcon /> : <GroupAddIcon />}
+                    onClick={handleRequest}
+                >
+                    {requested ? "Request sent" : "Request to join"}
+                </Button> : <Button
+                    variant={joined ? "outlined" : "contained"}
+                    color={joined ? "success" : "primary"}
+                    startIcon={joined ? <CheckIcon /> : <GroupAddIcon />}
+                    onClick={handleJoin}
+                >
+                    {joined ? "Joined" : "Join community"}
+                </Button>}
+              </Box>
 
                 <Chip
                     sx={{ mb: 3 }}
@@ -204,34 +223,6 @@ const CommunityInfo = () => {
                             : "Public Community"
                     }
                 />
-                {community.isPrivate && !joined ? <Button
-                    variant={requested ? "outlined" : "contained"}
-                    color={requested ? "success" : "primary"}
-                    startIcon={requested ? <CheckIcon /> : <GroupAddIcon />}
-                    onClick={handleRequest}
-                    sx={{
-                        ml: 50,
-                        textTransform: "none",
-                        borderRadius: 2,
-                        minWidth: 170,
-                    }}
-                >
-                    {requested ? "request sent" : "send join Request"}
-                </Button> : <Button
-
-                    variant={joined ? "outlined" : "contained"}
-                    color={joined ? "success" : "primary"}
-                    startIcon={joined ? <CheckIcon /> : <GroupAddIcon />}
-                    onClick={handleJoin}
-                    sx={{
-                        ml: 50,
-                        textTransform: "none",
-                        borderRadius: 2,
-                        minWidth: 170,
-                    }}
-                >
-                    {joined ? "Joined" : "Join Community"}
-                </Button>}
                 <Divider sx={{ mb: 3 }} />
 
                 <Typography

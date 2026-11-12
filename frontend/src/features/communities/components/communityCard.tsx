@@ -22,13 +22,9 @@ const CommunityCard = ({ community }: CommunityCardProps) => {
             sx={{
 
                 height: "100%",
-                borderRadius: 3,
-                transition: "all 0.3s ease",
-                cursor: "pointer",
-                "&:hover": {
-                    transform: "translateY(-8px)",
-                    boxShadow: 8,
-                },
+                borderRadius: "10px",
+                transition: "border-color 160ms ease, background-color 160ms ease",
+                "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" },
             }}
         >
             <CardContent>
@@ -38,7 +34,7 @@ const CommunityCard = ({ community }: CommunityCardProps) => {
                     alignItems="center"
                     mb={2}
                 >
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" fontWeight={600}>
                         {community.name}
                     </Typography>
 
@@ -60,7 +56,7 @@ const CommunityCard = ({ community }: CommunityCardProps) => {
                     variant="body2"
                     color="text.secondary"
                     sx={{
-                        minHeight: 70,
+                        minHeight: 64,
                         mb: 2,
                     }}
                 >

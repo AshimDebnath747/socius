@@ -59,7 +59,7 @@ const ActivitySection = () => {
     <Card
       elevation={2}
       sx={{
-        borderRadius: 4,
+        borderRadius: "10px",
       }}
     >
       <CardContent sx={{ p: 4 }}>
@@ -78,18 +78,18 @@ const ActivitySection = () => {
             <ListItem
               key={index}
               sx={{
-                borderRadius: 3,
+                borderRadius: "10px",
                 transition: ".2s",
 
                 "&:hover": {
-                  bgcolor: "#F8FAFC",
+                  bgcolor: "background.default",
                 },
               }}
             >
               <ListItemAvatar>
                 <Avatar
                   sx={{
-                    bgcolor: "#EEF4FF",
+                    bgcolor: "action.selected",
                   }}
                 >
                   {activity.icon}
