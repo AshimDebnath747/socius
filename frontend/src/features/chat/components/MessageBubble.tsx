@@ -1,6 +1,7 @@
 import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import DoneIcon from "@mui/icons-material/Done";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CallIcon from "@mui/icons-material/Call";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
@@ -487,7 +488,15 @@ export default function CommunityChatBubble({
           </Typography>
 
           {isOwn &&
-            (message.isRead ? (
+            (message.isPending ? (
+              <AccessTimeIcon
+                sx={{
+                  fontSize: 13,
+                  color: chatColors.inkSoft,
+                  opacity: 0.7,
+                }}
+              />
+            ) : message.isRead ? (
               <DoneAllIcon
                 sx={{
                   fontSize: 14,

@@ -17,6 +17,7 @@ export interface Message {
     isRead: boolean;
     isDelivered: boolean;
     isEncrypted?: boolean;
+    isPending?: boolean;   // true while the message is in-flight (not yet echoed back by server)
     createdAt: string;
 }
 

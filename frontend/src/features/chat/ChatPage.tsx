@@ -81,12 +81,16 @@ const ChatPage = () => {
   const [callMenuAnchor, setCallMenuAnchor] = useState<null | HTMLElement>(null);
 
   const handleSelectSession = useCallback((session: Session) => {
+    // Clear stale state immediately so the UI reflects the new session right away
+    setMessages([]);
+    setChatUser(null);
     setSelectedSession(session);
     setSearchParams({ sessionId: String(session.id) }, { replace: true });
     const peerId =
       String(session.helper_id) === String(currentUserId)
         ? session.requester_id
         : session.helper_id;
+    // Optimistically populate the header from cache while the full profile loads
     const cached = getCachedSessionPeer(session.id) || getCachedUserProfile(peerId);
     if (cached) {
       setChatUser({
@@ -94,6 +98,7 @@ const ChatPage = () => {
         name: cached.name,
         avatar: cached.avatar || cached.avatarUrl,
         avatarUrl: cached.avatarUrl || cached.avatar,
+        // Fix: use `session` (the new one), not the stale closure value
         role: cached.role || (String(currentUserId) === String(session.requester_id) ? "helper" : "requester"),
       });
     } else if (session.peer_name) {
@@ -107,15 +112,20 @@ const ChatPage = () => {
     }
   }, [currentUserId, setSearchParams]);
 
-  // Auto-restore / select session from URL parameter (e.g. after returning from a call)
+  // Auto-restore session from URL on initial page load (e.g. returning from a call).
+  // This effect intentionally only depends on `urlSessionId` so it does NOT
+  // re-run every time the user clicks a different chat in the sidebar — that
+  // was causing the URL update from `setSearchParams` to race against
+  // `setSelectedSession` and re-trigger session loading with stale data.
+  const hasRestoredFromUrl = useRef(false);
   useEffect(() => {
+    // Only restore once on mount, or if no session is currently selected
+    if (hasRestoredFromUrl.current) return;
     if (!urlSessionId) return;
     const targetId = Number(urlSessionId);
     if (!targetId) return;
 
-    if (selectedSession && Number(selectedSession.id) === targetId) {
-      return;
-    }
+    hasRestoredFromUrl.current = true;
 
     const cachedSessions = getCachedSessions();
     const foundSession = cachedSessions?.find((s) => Number(s.id) === targetId);
@@ -133,7 +143,8 @@ const ChatPage = () => {
           console.warn("Could not load session from URL:", err);
         });
     }
-  }, [urlSessionId, selectedSession, handleSelectSession]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSessionId]);
 
   const handleStartCall = (mode: "voice" | "video") => {
     setCallMenuAnchor(null);
@@ -286,9 +297,26 @@ const ChatPage = () => {
         createdAt: msg.created_at,
         isDelivered: msg.is_delivered,
         isRead: msg.is_read,
+        isPending: false,
       };
 
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        // If this echo is our own message, replace the oldest pending bubble
+        // (FIFO — socket echoes always arrive in send order, so the first
+        // pending entry from us is always the right one to swap out).
+        if (message.senderId === currentUserId) {
+          const pendingIdx = prev.findIndex(
+            (m) => m.isPending && m.senderId === currentUserId
+          );
+          if (pendingIdx !== -1) {
+            const next = [...prev];
+            next[pendingIdx] = message;
+            return next;
+          }
+        }
+        // Incoming message from the other side — just append
+        return [...prev, message];
+      });
 
       if (message.senderId !== currentUserId) {
         socket.emit("message-delivered", {
@@ -527,6 +555,22 @@ const ChatPage = () => {
   const handleSendMessage = async (textToSend: string) => {
     if (!selectedSession) return;
 
+    // 1. Push an optimistic message immediately so the UI feels instant
+    const optimisticId = `pending-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sessionId: String(selectedSession.id),
+      senderId: currentUserId,
+      content: textToSend,
+      messageType: "text",
+      createdAt: new Date().toISOString(),
+      isDelivered: false,
+      isRead: false,
+      isPending: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    // 2. Encrypt and emit to server
     let payloadContent = textToSend;
     if (sessionKeyRef.current) {
       payloadContent = await encryptChatMessage(textToSend, sessionKeyRef.current);
@@ -541,6 +585,26 @@ const ChatPage = () => {
 
   const handleSendMedia = async (file: File, caption: string) => {
     if (!selectedSession) return;
+
+    // Show an optimistic bubble while the upload is in-flight
+    const optimisticId = `pending-${Date.now()}`;
+    const localPreviewUrl = URL.createObjectURL(file);
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      sessionId: String(selectedSession.id),
+      senderId: currentUserId,
+      content: caption,
+      messageType: file.type.startsWith("video/") ? "video" : "image",
+      mediaUrl: localPreviewUrl,
+      mediaName: file.name,
+      mediaMimeType: file.type,
+      mediaSize: file.size,
+      createdAt: new Date().toISOString(),
+      isDelivered: false,
+      isRead: false,
+      isPending: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
       const formData = new FormData();
@@ -576,6 +640,8 @@ const ChatPage = () => {
       });
     } catch (error) {
       console.error("Failed to send media:", error);
+      // Remove the failed optimistic bubble
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
     }
   };
 
