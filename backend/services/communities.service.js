@@ -169,7 +169,7 @@ export const changeRole = async (AdminId, role, communityId, userId) => {
   return rows;
 };
 
-export const getComminityMessagesService = async (communityId, userId) => {
+export const getComminityMessagesService = async (communityId, userId, { cursor, limit = 30 } = {}) => {
   const query1 = `
         SELECT 1
         FROM communitymember
@@ -183,6 +183,10 @@ export const getComminityMessagesService = async (communityId, userId) => {
     throw new Error("Unauthorized user!");
   }
 
+  const limitNum = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100);
+  const cursorId = cursor ? parseInt(cursor, 10) : null;
+  const queryLimit = limitNum + 1;
+
   const query2 = `
         SELECT
             m.*,
@@ -191,13 +195,17 @@ export const getComminityMessagesService = async (communityId, userId) => {
             u.email,
 
             (
-                SELECT COUNT(*) = COUNT(delivered_at)
+                SELECT
+                    COUNT(*) > 0
+                    AND COUNT(*) = COUNT(delivered_at)
                 FROM message_status ms
                 WHERE ms.message_id = m.id
             ) AS is_delivered,
 
             (
-                SELECT COUNT(*) = COUNT(read_at)
+                SELECT
+                    COUNT(*) > 0
+                    AND COUNT(*) = COUNT(read_at)
                 FROM message_status ms
                 WHERE ms.message_id = m.id
             ) AS is_read
@@ -208,13 +216,28 @@ export const getComminityMessagesService = async (communityId, userId) => {
             ON u.id = m.sender_id
 
         WHERE m.community_id = $1
+          AND ($2::bigint IS NULL OR m.id < $2::bigint)
 
-        ORDER BY m.created_at ASC;
+        ORDER BY m.id DESC
+
+        LIMIT $3;
     `;
 
-  const { rows } = await pool.query(query2, [communityId]);
+  const { rows: fetchedRows } = await pool.query(query2, [communityId, cursorId, queryLimit]);
 
-  return rows;
+  const hasMore = fetchedRows.length > limitNum;
+  const messages = hasMore ? fetchedRows.slice(0, limitNum) : fetchedRows;
+
+  // Reverse to return in chronological order (oldest first, latest last)
+  messages.reverse();
+
+  const nextCursor = hasMore && messages.length > 0 ? messages[0].id : null;
+
+  return {
+    messages,
+    nextCursor,
+    hasMore,
+  };
 };
 
 export const getAllCommunitiesService = async () => {

@@ -176,8 +176,9 @@ export const getComminityMessages = async (req, res) => {
   try {
     const communityId = req.params.id;
     const userId = req.user.id;
-    const result = await getComminityMessagesService(communityId, userId);
-    res.status(201).json({
+    const { cursor, limit } = req.query;
+    const result = await getComminityMessagesService(communityId, userId, { cursor, limit });
+    return res.status(200).json({
       success: true,
       message: "community messages fetched successfully!",
       data: result,

@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import DoneIcon from "@mui/icons-material/Done";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 import {
   chatColors,
@@ -79,6 +80,12 @@ export default function CommunityChatBubble({
   const isVideo =
     message.messageType === "video";
 
+  const mediaSource = message.mediaUrl?.startsWith("blob:") || message.mediaUrl?.startsWith("http")
+    ? message.mediaUrl
+    : message.mediaUrl
+      ? `${API}${message.mediaUrl}`
+      : undefined;
+
   return (
     <Box
       display="flex"
@@ -124,10 +131,10 @@ export default function CommunityChatBubble({
             : {}),
         }}
       >
-        {isImage && message.mediaUrl && (
+        {isImage && mediaSource && (
           <Box
             component="img"
-            src={`${API}${message.mediaUrl}`}
+            src={mediaSource}
             alt={
               message.mediaName || "image"
             }
@@ -140,11 +147,11 @@ export default function CommunityChatBubble({
           />
         )}
 
-        {isVideo && message.mediaUrl && (
+        {isVideo && mediaSource && (
           <Box
             component="video"
             controls
-            src={`${API}${message.mediaUrl}`}
+            src={mediaSource}
             sx={{
               width: "100%",
               maxWidth: 320,
@@ -169,45 +176,60 @@ export default function CommunityChatBubble({
         )}
       </Box>
 
-      {showTimestamp && (
-        <Typography
-          sx={{
-            mt: 0.5,
-            px: 0.5,
-            fontFamily: chatFonts.mono,
-            fontSize: 11,
-            color: chatColors.inkSoft,
-          }}
-        >
-          {getDateTimeLabel(
-            message.createdAt
-          )}
-        </Typography>
-      )}
+      <Box
+        display="flex"
+        alignItems="center"
+        gap={0.5}
+        mt={0.5}
+        px={0.5}
+      >
+        {showTimestamp && (
+          <Typography
+            sx={{
+              fontFamily: chatFonts.mono,
+              fontSize: 11,
+              color: chatColors.inkSoft,
+            }}
+          >
+            {getDateTimeLabel(
+              message.createdAt
+            )}
+          </Typography>
+        )}
 
-      {isOwn &&
-        (message.isRead ? (
-          <DoneAllIcon
-            sx={{
-              fontSize: 16,
-              color: "#4FC3F7",
-            }}
-          />
-        ) : message.isDelivered ? (
-          <DoneAllIcon
-            sx={{
-              fontSize: 16,
-              color: "gray",
-            }}
-          />
-        ) : (
-          <DoneIcon
-            sx={{
-              fontSize: 16,
-              color: "gray",
-            }}
-          />
-        ))}
+        {isOwn &&
+          (message.isPending ? (
+            <AccessTimeIcon
+              sx={{
+                fontSize: 13,
+                color: chatColors.inkSoft,
+                opacity: 0.7,
+              }}
+            />
+          ) : message.isRead ? (
+            <DoneAllIcon
+              sx={{
+                fontSize: 15,
+                color: "#42A5F5",
+              }}
+            />
+          ) : message.isDelivered ? (
+            <DoneAllIcon
+              sx={{
+                fontSize: 15,
+                color: chatColors.inkSoft,
+              }}
+            />
+          ) : (
+            <DoneIcon
+              sx={{
+                fontSize: 15,
+                color: chatColors.inkSoft,
+                opacity: 0.8,
+              }}
+            />
+          ))}
+      </Box>
     </Box>
   );
 }

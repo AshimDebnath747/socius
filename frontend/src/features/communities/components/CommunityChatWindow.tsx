@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { Box, CircularProgress, Typography, Avatar, Stack } from "@mui/material";
 import CommunityChatBubble from "./CommunityChatBubble";
 import { chatColors, chatFonts } from "../../chat/theme/chatTheme";
@@ -10,20 +10,53 @@ interface Props {
     messages: CommunityMessage[];
     loading: boolean;
     currentUserId: string;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    loadingMore?: boolean;
 }
 
 export default function CommunityChatWindow({
     messages,
     loading,
     currentUserId,
+    onLoadMore,
+    hasMore = false,
+    loadingMore = false,
 }: Props) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
+    const isPrependingRef = useRef(false);
+    const previousScrollHeightRef = useRef<number>(0);
+    const previousFirstMessageIdRef = useRef<string | null>(null);
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({
-            behavior: "smooth",
-        });
-    }, [messages.length]);
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const currentFirstId = messages[0]?.id || null;
+
+        if (isPrependingRef.current && previousScrollHeightRef.current > 0) {
+            // Anchor scroll position when older messages are prepended to top
+            const heightDiff = container.scrollHeight - previousScrollHeightRef.current;
+            container.scrollTop = heightDiff;
+            isPrependingRef.current = false;
+        } else if (!previousFirstMessageIdRef.current || previousFirstMessageIdRef.current === currentFirstId) {
+            // Initial load or new message appended at bottom
+            bottomRef.current?.scrollIntoView({ behavior: previousFirstMessageIdRef.current ? "smooth" : "auto" });
+        }
+
+        previousFirstMessageIdRef.current = currentFirstId;
+        previousScrollHeightRef.current = container.scrollHeight;
+    }, [messages]);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        if (container.scrollTop < 80 && hasMore && !loadingMore && onLoadMore) {
+            isPrependingRef.current = true;
+            previousScrollHeightRef.current = container.scrollHeight;
+            onLoadMore();
+        }
+    };
 
     if (loading) {
         return (
@@ -66,6 +99,8 @@ export default function CommunityChatWindow({
 
     return (
         <Box
+            ref={containerRef}
+            onScroll={handleScroll}
             flex={1}
             overflow="auto"
             px={2}
@@ -74,6 +109,13 @@ export default function CommunityChatWindow({
                 bgcolor: chatColors.bg,
             }}
         >
+            {/* Top spinner when fetching older messages */}
+            {loadingMore && (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 1.5 }}>
+                    <CircularProgress size={18} sx={{ color: chatColors.primary }} />
+                </Box>
+            )}
+
             {messages.map((msg, i) => {
                 const next = messages[i + 1];
                 const prev = messages[i - 1];
@@ -103,7 +145,9 @@ export default function CommunityChatWindow({
                                     <Avatar
                                         src={
                                             msg.avatar
-                                                ? `${API}${msg.avatar}`
+                                                ? msg.avatar.startsWith("http")
+                                                    ? msg.avatar
+                                                    : `${API}${msg.avatar}`
                                                 : undefined
                                         }
                                         sx={{

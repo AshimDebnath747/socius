@@ -26,11 +26,16 @@ interface Props {
     caption: string
   ) => Promise<void>;
 
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+
   disabled?: boolean;
 }
 export default function MessageInput({
   onSend,
   onSendMedia,
+  onTyping,
+  onStopTyping,
   disabled,
 }: Props) {
   const [text, setText] = useState("");
@@ -39,6 +44,42 @@ export default function MessageInput({
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        onStopTyping?.();
+      }
+    };
+  }, [onStopTyping]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setText(val);
+
+    if (val.trim()) {
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        onTyping?.();
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        onStopTyping?.();
+      }, 2500);
+    } else {
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        onStopTyping?.();
+      }
+    }
+  };
 
   /*
    * Clean up the temporary object URL when component unmounts.
@@ -93,6 +134,12 @@ export default function MessageInput({
    */
  const handleSend = async () => {
   const trimmed = text.trim();
+
+  if (isTypingRef.current) {
+    isTypingRef.current = false;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    onStopTyping?.();
+  }
 
   try {
     /*
@@ -347,9 +394,7 @@ export default function MessageInput({
                 : "Write a message"
           }
           value={text}
-          onChange={(e) =>
-            setText(e.target.value)
-          }
+          onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
           sx={{

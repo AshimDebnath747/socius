@@ -2,7 +2,7 @@ import { Avatar, Box, Chip, Stack, Typography } from "@mui/material";
 import { chatColors, chatFonts } from "../theme/chatTheme";
 import type { ChatHeaderProps } from "../../posts/types";
 
-export default function ChatHeader({ otherUser, onClick, badge }: ChatHeaderProps) {
+export default function ChatHeader({ otherUser, onClick, badge, isTyping, subtitle }: ChatHeaderProps) {
   return (
     <Box
       onClick={onClick}
@@ -67,31 +67,45 @@ export default function ChatHeader({ otherUser, onClick, badge }: ChatHeaderProp
             {otherUser.name}
           </Typography>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25 }}>
-            <Chip
-              label={
-                otherUser.role === "helper"
-                  ? "Helper"
-                  : otherUser.role === "requester"
-                    ? "Requester"
-                    : "Click for more info"
-              }
-              size="small"
-              sx={{
-                height: 18,
-                fontSize: 11,
-                fontFamily: chatFonts.body,
-                fontWeight: 500,
-                bgcolor:
+            {isTyping ? (
+              <Typography
+                sx={{
+                  fontFamily: chatFonts.body,
+                  fontSize: 12,
+                  color: "#16a34a",
+                  fontWeight: 600,
+                  fontStyle: "italic",
+                }}
+              >
+                {subtitle || "typing..."}
+              </Typography>
+            ) : (
+              <Chip
+                label={
                   otherUser.role === "helper"
-                    ? chatColors.accentSoft
-                    : chatColors.primarySoft,
-                color:
-                  otherUser.role === "helper"
-                    ? chatColors.accent
-                    : chatColors.primary,
-                "& .MuiChip-label": { px: 1 },
-              }}
-            />
+                    ? "Helper"
+                    : otherUser.role === "requester"
+                      ? "Requester"
+                      : otherUser.role || "Click for more info"
+                }
+                size="small"
+                sx={{
+                  height: 18,
+                  fontSize: 11,
+                  fontFamily: chatFonts.body,
+                  fontWeight: 500,
+                  bgcolor:
+                    otherUser.role === "helper"
+                      ? chatColors.accentSoft
+                      : chatColors.primarySoft,
+                  color:
+                    otherUser.role === "helper"
+                      ? chatColors.accent
+                      : chatColors.primary,
+                  "& .MuiChip-label": { px: 1 },
+                }}
+              />
+            )}
             {badge}
           </Stack>
         </Box>

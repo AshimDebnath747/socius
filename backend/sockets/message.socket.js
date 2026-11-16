@@ -21,6 +21,36 @@ export const registerMessageEvents = (io, socket) => {
     socket.join(`community-${sessionId}`);
   });
 
+  // Typing indicators ->
+  socket.on("typing", ({ type, targetId, userName }) => {
+    if (!targetId) return;
+    const room =
+      type === "community"
+        ? `community-${targetId}`
+        : `session-${targetId}`;
+
+    socket.to(room).emit("user-typing", {
+      type,
+      targetId: String(targetId),
+      userId: String(socket.user.id),
+      userName: userName || "Someone",
+    });
+  });
+
+  socket.on("stop-typing", ({ type, targetId }) => {
+    if (!targetId) return;
+    const room =
+      type === "community"
+        ? `community-${targetId}`
+        : `session-${targetId}`;
+
+    socket.to(room).emit("user-stop-typing", {
+      type,
+      targetId: String(targetId),
+      userId: String(socket.user.id),
+    });
+  });
+
   //message - read ->
   socket.on("message-read", async ({ messageId }) => {
     const result = await pool.query(
@@ -39,14 +69,14 @@ export const registerMessageEvents = (io, socket) => {
     console.log("message read ", messageId, "by", socket.user.id);
     const { rows } = await pool.query(
       `
-        SELECT COUNT(*) = COUNT(read_at) AS everyone_read
+        SELECT COUNT(*) > 0 AND COUNT(*) = COUNT(read_at) AS everyone_read
         FROM message_status
         WHERE message_id = $1
         `,
       [messageId],
     );
 
-    if (!rows[0].everyone_read) {
+    if (!rows[0] || !rows[0].everyone_read) {
       return;
     }
 
@@ -59,9 +89,11 @@ export const registerMessageEvents = (io, socket) => {
       [messageId],
     );
 
-    io.to(`user-${senderRows[0].sender_id}`).emit("message-read", {
-      messageId,
-    });
+    if (senderRows.length > 0 && senderRows[0].sender_id) {
+      io.to(`user-${senderRows[0].sender_id}`).emit("message-read", {
+        messageId,
+      });
+    }
   });
   //message - delivered ->
   socket.on("message-delivered", async ({ messageId }) => {
@@ -81,14 +113,14 @@ export const registerMessageEvents = (io, socket) => {
     const { rows } = await pool.query(
       `
         SELECT
-            COUNT(*) = COUNT(delivered_at) AS everyone_delivered
+            COUNT(*) > 0 AND COUNT(*) = COUNT(delivered_at) AS everyone_delivered
         FROM message_status
         WHERE message_id = $1
         `,
       [messageId],
     );
 
-    if (!rows[0].everyone_delivered) {
+    if (!rows[0] || !rows[0].everyone_delivered) {
       return;
     }
 
@@ -100,12 +132,14 @@ export const registerMessageEvents = (io, socket) => {
         `,
       [messageId],
     );
-    const senderId = senderRows[0].sender_id;
-    console.log(senderId);
+    if (senderRows.length > 0 && senderRows[0].sender_id) {
+      const senderId = senderRows[0].sender_id;
+      console.log(senderId);
 
-    io.to(`user-${senderId}`).emit("message-delivered", {
-      messageId,
-    });
+      io.to(`user-${senderId}`).emit("message-delivered", {
+        messageId,
+      });
+    }
   });
   //send-message ->
   socket.on(

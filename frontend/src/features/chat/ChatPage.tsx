@@ -1,6 +1,7 @@
 import ChatHeader from "./components/ChatHeader";
 import ChatWindow from "./components/ChatWindow";
 import MessageInput from "./components/MessageInput";
+import TypingIndicator from "./components/TypingIndicator";
 import {
   Box,
   Button,
@@ -63,6 +64,19 @@ const getStoredUserId = (): string => {
   return "";
 };
 
+const getStoredUserName = (): string => {
+  try {
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+      const parsed = JSON.parse(rawUser);
+      return parsed.name || parsed.username || "";
+    }
+  } catch {
+    // ignore parse error
+  }
+  return "";
+};
+
 const ChatPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +100,7 @@ const ChatPage = () => {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isE2EEActive, setIsE2EEActive] = useState(false);
   const [isPeerOnline, setIsPeerOnline] = useState(false);
+  const [isPeerTyping, setIsPeerTyping] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const nextCursorRef = useRef<number | string | null>(null);
@@ -97,6 +112,7 @@ const ChatPage = () => {
     // Clear stale state immediately so the UI reflects the new session right away
     setMessages([]);
     setChatUser(null);
+    setIsPeerTyping(false);
     setSelectedSession(session);
     setSearchParams({ sessionId: String(session.id) }, { replace: true });
     const myId = String(currentUserId || getStoredUserId());
@@ -279,6 +295,48 @@ const ChatPage = () => {
     return () => {
       socket.off("user-status-changed", handleUserStatusChanged);
       socket.off("connect", checkPeerStatus);
+    };
+  }, [selectedSession, currentUserId]);
+
+  // Real-time typing indicator listener for 1:1 sessions
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const handleUserTyping = (data: { type: string; targetId: string; userId: string; userName: string }) => {
+      const myId = String(currentUserId || getStoredUserId());
+      if (
+        data.type === "session" &&
+        selectedSession &&
+        String(data.targetId) === String(selectedSession.id) &&
+        String(data.userId) !== myId
+      ) {
+        setIsPeerTyping(true);
+
+        // Reset safety auto-expiration timer (4s)
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+          setIsPeerTyping(false);
+        }, 4000);
+      }
+    };
+
+    const handleUserStopTyping = (data: { type: string; targetId: string; userId: string }) => {
+      if (
+        data.type === "session" &&
+        selectedSession &&
+        String(data.targetId) === String(selectedSession.id)
+      ) {
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        setIsPeerTyping(false);
+      }
+    };
+
+    socket.on("user-typing", handleUserTyping);
+    socket.on("user-stop-typing", handleUserStopTyping);
+
+    return () => {
+      socket.off("user-typing", handleUserTyping);
+      socket.off("user-stop-typing", handleUserStopTyping);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     };
   }, [selectedSession, currentUserId]);
 
@@ -743,6 +801,7 @@ const ChatPage = () => {
                     avatarUrl: chatUser?.avatar || chatUser?.avatarUrl || selectedSession.peer_avatar,
                     connected: isPeerOnline,
                   }}
+                  isTyping={isPeerTyping}
                   badge={
                     <Chip
                       icon={isE2EEActive ? <LockIcon sx={{ fontSize: "11px !important" }} /> : <LockOpenIcon sx={{ fontSize: "11px !important" }} />}
@@ -863,11 +922,37 @@ const ChatPage = () => {
             />
 
             {selectedSession.status === "active" ? (
-              <MessageInput
-                onSend={handleSendMessage}
-                onSendMedia={handleSendMedia}
-                disabled={!connected}
-              />
+              <>
+                <TypingIndicator
+                  text={
+                    isPeerTyping
+                      ? `${chatUser?.name || selectedSession.peer_name || "Partner"} is typing...`
+                      : ""
+                  }
+                />
+                <MessageInput
+                  onSend={handleSendMessage}
+                  onSendMedia={handleSendMedia}
+                  onTyping={() => {
+                    if (selectedSession) {
+                      socket.emit("typing", {
+                        type: "session",
+                        targetId: selectedSession.id,
+                        userName: getStoredUserName(),
+                      });
+                    }
+                  }}
+                  onStopTyping={() => {
+                    if (selectedSession) {
+                      socket.emit("stop-typing", {
+                        type: "session",
+                        targetId: selectedSession.id,
+                      });
+                    }
+                  }}
+                  disabled={!connected}
+                />
+              </>
             ) : (
               <Box
                 sx={{

@@ -23,9 +23,12 @@ export interface CommunityMessage {
 
     mediaUrl: string | null;
     mediaName: string | null;
+    mediaMimeType?: string;
+    mediaSize?: number;
 
     isRead: boolean;
     isDelivered: boolean;
+    isPending?: boolean;
 
     createdAt: string;
     updatedAt: string;

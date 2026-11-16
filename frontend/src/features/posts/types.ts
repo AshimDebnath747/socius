@@ -43,11 +43,13 @@ export interface ChatHeaderProps {
   otherUser: {
     name: string;
     avatarUrl?: string;
-    role: "requester" | "helper" | "click for more info";
+    role: string;
     connected?: boolean;
   };
   onClick?: () => void;
   badge?: React.ReactNode;
+  isTyping?: boolean;
+  subtitle?: string;
 }
 
 export interface JoinRequest {
