@@ -363,6 +363,10 @@ const MeetingPage = () => {
   const handleSelectAudioOutput = async (deviceId: string) => {
     setSelectedAudioOutput(deviceId);
     setSpeakerMenuAnchor(null);
+    const selectedDev = audioOutputs.find((d) => d.deviceId === deviceId);
+    if (selectedDev) {
+      setIsLoudspeaker(!/headset|earpiece|headphone|bluetooth/i.test(selectedDev.label));
+    }
     try {
       const mediaElements = document.querySelectorAll<HTMLMediaElement>("video, audio");
       for (const el of Array.from(mediaElements)) {

@@ -1,3 +1,7 @@
+import dotenv from "dotenv";
+dotenv.config();
+dotenv.config({ path: ".env.development" });
+
 import express from 'express';
 import cors from 'cors';
 import cookieParser from "cookie-parser";
@@ -11,6 +15,7 @@ import sessionRouter from "./routes/session.route.js"
 import reviewRouter from "./routes/reviews.route.js"
 import notificationRouter from './routes/notifications.route.js'
 import path from "path";
+import fs from "fs";
 import "./config/passport.js"
 import passport from 'passport';
 import { initSocket } from './sockets/index.js';
@@ -29,9 +34,14 @@ app.use(cors({
 console.log("enfdd:", process.env.FEV)
 app.use(cookieParser());
 
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.use(
   "/uploads",
-  express.static(path.join(__dirname, "uploads"))
+  express.static(uploadsDir)
 );
 
 app.use('/api/auth', authRouter);

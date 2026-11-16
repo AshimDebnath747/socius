@@ -18,14 +18,17 @@ router.get(
     passport.authenticate("google", { session: false }),
     (req, res) => {
         const token = req.user.token;
+        const isProd = process.env.NODE_ENV === "production";
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            path: "/",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
-        res.redirect(`http://localhost:5173/`);
+        const frontendUrl = process.env.FEV || "http://localhost:5173";
+        res.redirect(`${frontendUrl}/`);
     }
 );
 
