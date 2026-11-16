@@ -183,41 +183,69 @@ export const saveUserCryptoKeysController = async (req, res) => {
     const userId = req.user.id;
     const { publicKey, privateKey, encryptedPrivateKey, keySalt, keyIv } = req.body;
 
-    if (!publicKey) {
+    if (!publicKey && !privateKey) {
       return res.status(400).json({
         success: false,
-        message: "publicKey is required",
+        message: "Public key or private key is required",
       });
     }
 
-    // Check if user ALREADY has keys stored
+    // Check if user ALREADY has valid decryptable keys stored
     const existing = await getUserCryptoKeys(userId);
-    if (existing) {
+    if (existing && existing.encrypted_private_key) {
       const existingDecrypted = decryptPrivateKeyAtRest(existing.encrypted_private_key);
       if (existingDecrypted) {
-        // Return existing keys without overwriting!
+        let existingPrivObj = null;
+        try {
+          existingPrivObj = JSON.parse(existingDecrypted);
+        } catch {
+          existingPrivObj = existingDecrypted;
+        }
+
+        let existingPubObj = null;
+        try {
+          existingPubObj = typeof existing.public_key === "string" ? JSON.parse(existing.public_key) : existing.public_key;
+        } catch {
+          existingPubObj = existing.public_key;
+        }
+
+        // Return existing authoritative keys without overwriting!
         return res.status(200).json({
           success: true,
           message: "Keys already exist for user",
           data: {
             userId: existing.user_id,
-            publicKey: existing.public_key,
-            privateKey: existingDecrypted,
+            publicKey: existingPubObj,
+            privateKey: existingPrivObj,
           },
         });
       }
     }
 
-    // Encrypt private key at rest if provided
+    // Server does not have valid decryptable keys yet.
+    // Encrypt private key at rest if provided, and guarantee matching public key coordinates.
     let finalEncryptedPrivate = encryptedPrivateKey ?? null;
+    let finalPublicKey = publicKey;
+
     if (privateKey) {
-      const privStr = typeof privateKey === "object" ? JSON.stringify(privateKey) : privateKey;
-      finalEncryptedPrivate = encryptPrivateKeyAtRest(privStr);
+      const privObj = typeof privateKey === "object" ? privateKey : JSON.parse(privateKey);
+      finalEncryptedPrivate = encryptPrivateKeyAtRest(JSON.stringify(privObj));
+
+      if (privObj && privObj.x && privObj.y) {
+        finalPublicKey = {
+          kty: "EC",
+          crv: "P-256",
+          x: privObj.x,
+          y: privObj.y,
+        };
+      }
     }
+
+    const pubStr = typeof finalPublicKey === "object" ? JSON.stringify(finalPublicKey) : finalPublicKey;
 
     const savedKeys = await upsertUserCryptoKeys(
       userId,
-      typeof publicKey === "object" ? JSON.stringify(publicKey) : publicKey,
+      pubStr,
       finalEncryptedPrivate,
       keySalt ?? null,
       keyIv ?? null
@@ -226,17 +254,24 @@ export const saveUserCryptoKeysController = async (req, res) => {
     let returnPrivateKey = null;
     if (privateKey) {
       returnPrivateKey = typeof privateKey === "object" ? privateKey : JSON.parse(privateKey);
-    } else if (savedKeys.encrypted_private_key) {
+    } else if (savedKeys?.encrypted_private_key) {
       const decrypted = decryptPrivateKeyAtRest(savedKeys.encrypted_private_key);
       returnPrivateKey = decrypted ? JSON.parse(decrypted) : null;
+    }
+
+    let returnPublicKey = null;
+    try {
+      returnPublicKey = typeof savedKeys?.public_key === "string" ? JSON.parse(savedKeys.public_key) : savedKeys?.public_key;
+    } catch {
+      returnPublicKey = savedKeys?.public_key;
     }
 
     return res.status(200).json({
       success: true,
       message: "Crypto keys saved successfully",
       data: {
-        userId: savedKeys.user_id,
-        publicKey: savedKeys.public_key,
+        userId: savedKeys?.user_id || userId,
+        publicKey: returnPublicKey,
         privateKey: returnPrivateKey,
       },
     });
@@ -255,18 +290,25 @@ export const getUserPublicKeyController = async (req, res) => {
     const targetUserId = req.params.id;
     const keyData = await getUserPublicKey(targetUserId);
 
-    if (!keyData) {
+    if (!keyData || !keyData.public_key) {
       return res.status(404).json({
         success: false,
         message: "Public key not found for user",
       });
     }
 
+    let publicKeyJwk = null;
+    try {
+      publicKeyJwk = typeof keyData.public_key === "string" ? JSON.parse(keyData.public_key) : keyData.public_key;
+    } catch {
+      publicKeyJwk = keyData.public_key;
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         userId: keyData.user_id,
-        publicKey: keyData.public_key,
+        publicKey: publicKeyJwk,
       },
     });
   } catch (err) {
@@ -304,11 +346,20 @@ export const getMyCryptoKeysController = async (req, res) => {
       }
     }
 
+    let publicKeyJwk = null;
+    if (keyData.public_key) {
+      try {
+        publicKeyJwk = typeof keyData.public_key === "string" ? JSON.parse(keyData.public_key) : keyData.public_key;
+      } catch {
+        publicKeyJwk = keyData.public_key;
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         userId: keyData.user_id,
-        publicKey: keyData.public_key,
+        publicKey: publicKeyJwk,
         privateKey: privateKeyJwk,
         encryptedPrivateKey: keyData.encrypted_private_key,
         keySalt: keyData.key_salt,

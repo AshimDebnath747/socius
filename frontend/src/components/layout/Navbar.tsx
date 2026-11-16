@@ -24,6 +24,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import { socket } from "../../socket";
+import { clearAllUserCaches } from "../../lib/userCache";
 
 type NavBarAuth = {
   checkAuth: boolean;
@@ -74,10 +75,12 @@ const Navbar = ({ checkAuth, setCheckAuth }: NavBarAuth) => {
       socket.disconnect();
       await fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include" });
       localStorage.removeItem("user");
+      clearAllUserCaches();
       setCheckAuth(false);
       window.location.assign("/login");
     } catch (error) {
       console.error(error);
+      clearAllUserCaches();
       window.location.assign("/login");
     } finally {
       setLoggingOut(false);

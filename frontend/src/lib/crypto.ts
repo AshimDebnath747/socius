@@ -327,6 +327,9 @@ export async function initializeUserCryptoKeys(
   _password?: string
 ): Promise<{ privateKey: CryptoKey; publicKeyJwk: JsonWebKey } | null> {
   const uid = String(userId);
+  if (!uid || uid === "0" || uid === "undefined" || uid === "null" || uid.trim() === "") {
+    return null;
+  }
 
   // 1. Fetch authoritative account keys from server (User-Based E2EE)
   let serverPublicKey: JsonWebKey | null = null;
@@ -374,42 +377,49 @@ export async function initializeUserCryptoKeys(
     const localPrivateKey = await getLocalPrivateKey(uid);
     if (localPrivateKey) {
       const privJwk = await window.crypto.subtle.exportKey("jwk", localPrivateKey);
-      let pubJwk = serverPublicKey;
-      if (!pubJwk) {
-        pubJwk = await fetchUserPublicKey(uid);
-      }
-      if (pubJwk) {
+      // Derive matching public key from local private key coordinates
+      const derivedPubJwk: JsonWebKey = {
+        kty: "EC",
+        crv: "P-256",
+        x: privJwk.x,
+        y: privJwk.y,
+      };
+
+      const matchesServerPub = !serverPublicKey || (
+        serverPublicKey.x === privJwk.x && serverPublicKey.y === privJwk.y
+      );
+
+      if (matchesServerPub) {
         try {
-          await api.post("/api/users/keys", {
-            publicKey: JSON.stringify(pubJwk),
+          const syncRes = await api.post("/api/users/keys", {
+            publicKey: JSON.stringify(derivedPubJwk),
             privateKey: JSON.stringify(privJwk),
           });
+          const authoritativePub = syncRes.data?.data?.publicKey || derivedPubJwk;
+          const finalPub = typeof authoritativePub === "string" ? JSON.parse(authoritativePub) : authoritativePub;
+          return { privateKey: localPrivateKey, publicKeyJwk: finalPub };
         } catch (syncErr) {
           console.warn("Could not sync local private key to server:", syncErr);
         }
-        return { privateKey: localPrivateKey, publicKeyJwk: pubJwk };
+        return { privateKey: localPrivateKey, publicKeyJwk: derivedPubJwk };
       }
     }
   } catch (localErr) {
     console.warn("Could not access local private key:", localErr);
   }
 
-  // Case C: Brand new user account -> Generate key pair once and persist
+  // Case C: Neither server nor local device has matching private key -> Generate key pair once and persist
   try {
     const keyPair = await generateIdentityKeyPair();
     const pubJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
     const privJwk = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
 
-    // Save locally in IndexedDB
-    await saveLocalPrivateKey(uid, keyPair.privateKey);
-
-    // Upload to server
+    // Upload to server first so server can save or return authoritative keys
     const saveRes = await api.post("/api/users/keys", {
       publicKey: JSON.stringify(pubJwk),
       privateKey: JSON.stringify(privJwk),
     });
 
-    // If server already had authoritative keys, use server keys
     if (saveRes.data?.data?.privateKey) {
       const sPriv =
         typeof saveRes.data.data.privateKey === "string"
@@ -430,6 +440,8 @@ export async function initializeUserCryptoKeys(
       return { privateKey: imported, publicKeyJwk: sPub };
     }
 
+    // Save locally in IndexedDB as fallback
+    await saveLocalPrivateKey(uid, keyPair.privateKey);
     return { privateKey: keyPair.privateKey, publicKeyJwk: pubJwk };
   } catch (err) {
     console.error("Failed to generate or upload identity keys:", err);

@@ -2,7 +2,7 @@ import { pool } from "../config/db.js";
 import crypto from "crypto";
 
 const getCryptoKey = () => {
-  const secret = process.env.JWT_SECRET || "socius-master-secret-key-69";
+  const secret = process.env.JWT_SECRET || "SOCIUS69" || "socius-master-secret-key-69";
   return crypto.createHash("sha256").update(secret).digest();
 };
 
@@ -24,17 +24,32 @@ export const encryptPrivateKeyAtRest = (privateKeyJwkString) => {
 export const decryptPrivateKeyAtRest = (storedPayload) => {
   if (!storedPayload) return null;
   try {
-    const parsed = JSON.parse(storedPayload);
-    if (parsed.v === "server-gcm-1" && parsed.ct && parsed.iv && parsed.tag) {
-      const decipher = crypto.createDecipheriv(
-        "aes-256-gcm",
-        getCryptoKey(),
-        Buffer.from(parsed.iv, "base64")
-      );
-      decipher.setAuthTag(Buffer.from(parsed.tag, "base64"));
-      let decrypted = decipher.update(parsed.ct, "base64", "utf8");
-      decrypted += decipher.final("utf8");
-      return decrypted;
+    const parsed = typeof storedPayload === "string" ? JSON.parse(storedPayload) : storedPayload;
+    if (parsed && parsed.v === "server-gcm-1" && parsed.ct && parsed.iv && parsed.tag) {
+      const secretsToTry = [
+        process.env.JWT_SECRET,
+        "SOCIUS69",
+        "socius-master-secret-key-69",
+      ].filter(Boolean);
+
+      const uniqueSecrets = [...new Set(secretsToTry)];
+
+      for (const secret of uniqueSecrets) {
+        try {
+          const key = crypto.createHash("sha256").update(secret).digest();
+          const decipher = crypto.createDecipheriv(
+            "aes-256-gcm",
+            key,
+            Buffer.from(parsed.iv, "base64")
+          );
+          decipher.setAuthTag(Buffer.from(parsed.tag, "base64"));
+          let decrypted = decipher.update(parsed.ct, "base64", "utf8");
+          decrypted += decipher.final("utf8");
+          return decrypted;
+        } catch {
+          // try next fallback secret
+        }
+      }
     }
   } catch {
     // not server encrypted
@@ -285,10 +300,10 @@ export const upsertUserCryptoKeys = async (
     INSERT INTO user_crypto_keys (user_id, public_key, encrypted_private_key, key_salt, key_iv, updated_at)
     VALUES ($1, $2, $3, $4, $5, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
-      public_key = COALESCE(user_crypto_keys.public_key, EXCLUDED.public_key),
-      encrypted_private_key = COALESCE(user_crypto_keys.encrypted_private_key, EXCLUDED.encrypted_private_key),
-      key_salt = COALESCE(user_crypto_keys.key_salt, EXCLUDED.key_salt),
-      key_iv = COALESCE(user_crypto_keys.key_iv, EXCLUDED.key_iv),
+      public_key = COALESCE(EXCLUDED.public_key, user_crypto_keys.public_key),
+      encrypted_private_key = COALESCE(EXCLUDED.encrypted_private_key, user_crypto_keys.encrypted_private_key),
+      key_salt = COALESCE(EXCLUDED.key_salt, user_crypto_keys.key_salt),
+      key_iv = COALESCE(EXCLUDED.key_iv, user_crypto_keys.key_iv),
       updated_at = NOW()
     RETURNING user_id, public_key, encrypted_private_key, key_salt, key_iv;
   `;

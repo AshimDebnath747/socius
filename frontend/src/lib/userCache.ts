@@ -112,3 +112,19 @@ export const setCachedSessions = (sessions: Session[]): void => {
     console.warn("Failed to cache sessions list in localStorage:", err);
   }
 };
+
+export const clearAllUserCaches = (): void => {
+  try {
+    localStorage.removeItem(SESSIONS_CACHE_KEY);
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        key.startsWith(CACHE_USER_PREFIX) ||
+        key.startsWith(CACHE_SESSION_PEER_PREFIX)
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (err) {
+    console.warn("Failed to clear user caches from localStorage:", err);
+  }
+};

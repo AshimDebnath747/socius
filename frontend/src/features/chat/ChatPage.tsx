@@ -55,7 +55,7 @@ const getStoredUserId = (): string => {
     const rawUser = localStorage.getItem("user");
     if (rawUser) {
       const parsed = JSON.parse(rawUser);
-      return String(parsed.id || "");
+      return String(parsed.id || parsed.userId || "");
     }
   } catch {
     // ignore parse error
@@ -67,7 +67,20 @@ const ChatPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlSessionId = searchParams.get("sessionId");
-  const currentUserId = getStoredUserId();
+  const [currentUserId, setCurrentUserId] = useState<string>(() => getStoredUserId());
+
+  useEffect(() => {
+    const syncUserId = () => {
+      const stored = getStoredUserId();
+      if (stored && stored !== currentUserId) {
+        setCurrentUserId(stored);
+      }
+    };
+    syncUserId();
+    window.addEventListener("storage", syncUserId);
+    return () => window.removeEventListener("storage", syncUserId);
+  }, [currentUserId]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatUser, setChatUser] = useState<any>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -86,10 +99,9 @@ const ChatPage = () => {
     setChatUser(null);
     setSelectedSession(session);
     setSearchParams({ sessionId: String(session.id) }, { replace: true });
-    const peerId =
-      String(session.helper_id) === String(currentUserId)
-        ? session.requester_id
-        : session.helper_id;
+    const myId = String(currentUserId || getStoredUserId());
+    const isRequester = String(session.requester_id) === myId;
+    const peerId = isRequester ? session.helper_id : session.requester_id;
     // Optimistically populate the header from cache while the full profile loads
     const cached = getCachedSessionPeer(session.id) || getCachedUserProfile(peerId);
     if (cached) {
@@ -98,8 +110,7 @@ const ChatPage = () => {
         name: cached.name,
         avatar: cached.avatar || cached.avatarUrl,
         avatarUrl: cached.avatarUrl || cached.avatar,
-        // Fix: use `session` (the new one), not the stale closure value
-        role: cached.role || (String(currentUserId) === String(session.requester_id) ? "helper" : "requester"),
+        role: cached.role || (isRequester ? "helper" : "requester"),
       });
     } else if (session.peer_name) {
       setChatUser({
@@ -107,7 +118,7 @@ const ChatPage = () => {
         name: session.peer_name,
         avatar: session.peer_avatar,
         avatarUrl: session.peer_avatar,
-        role: String(currentUserId) === String(session.requester_id) ? "helper" : "requester",
+        role: isRequester ? "helper" : "requester",
       });
     }
   }, [currentUserId, setSearchParams]);
@@ -169,8 +180,9 @@ const ChatPage = () => {
 
   // Mark unread messages as read
   useEffect(() => {
+    const myId = String(currentUserId || getStoredUserId());
     messages.forEach((msg) => {
-      if (msg.senderId !== currentUserId && !msg.isRead) {
+      if (myId && msg.senderId !== myId && !msg.isRead) {
         socket.emit("message-read", {
           messageId: msg.id,
         });
@@ -236,15 +248,14 @@ const ChatPage = () => {
 
   // Real-time peer online status listener
   useEffect(() => {
-    if (!selectedSession || !currentUserId) {
+    const myId = String(currentUserId || getStoredUserId());
+    if (!selectedSession || !myId) {
       setIsPeerOnline(false);
       return;
     }
 
-    const peerId =
-      Number(selectedSession.helper_id) === Number(currentUserId)
-        ? Number(selectedSession.requester_id)
-        : Number(selectedSession.helper_id);
+    const isRequester = String(selectedSession.requester_id) === myId;
+    const peerId = Number(isRequester ? selectedSession.helper_id : selectedSession.requester_id);
 
     const checkPeerStatus = () => {
       socket.emit("check-user-status", { userId: peerId }, (res?: { userId: number; isOnline: boolean }) => {
@@ -300,13 +311,14 @@ const ChatPage = () => {
         isPending: false,
       };
 
+      const myId = String(currentUserId || getStoredUserId());
       setMessages((prev) => {
         // If this echo is our own message, replace the oldest pending bubble
         // (FIFO — socket echoes always arrive in send order, so the first
         // pending entry from us is always the right one to swap out).
-        if (message.senderId === currentUserId) {
+        if (myId && message.senderId === myId) {
           const pendingIdx = prev.findIndex(
-            (m) => m.isPending && m.senderId === currentUserId
+            (m) => m.isPending && m.senderId === myId
           );
           if (pendingIdx !== -1) {
             const next = [...prev];
@@ -318,7 +330,7 @@ const ChatPage = () => {
         return [...prev, message];
       });
 
-      if (message.senderId !== currentUserId) {
+      if (myId && message.senderId !== myId) {
         socket.emit("message-delivered", {
           messageId: message.id,
         });
@@ -346,10 +358,17 @@ const ChatPage = () => {
       sessionKeyRef.current = null;
       setIsE2EEActive(false);
 
-      const peerId =
-        String(selectedSession.helper_id) === String(currentUserId)
-          ? selectedSession.requester_id
-          : selectedSession.helper_id;
+      const myId = String(currentUserId || getStoredUserId());
+      if (!myId) return;
+
+      const isRequester = String(selectedSession.requester_id) === myId;
+      const isHelper = String(selectedSession.helper_id) === myId;
+      if (!isRequester && !isHelper) {
+        console.warn("User is not a participant of session:", selectedSession.id);
+        return;
+      }
+
+      const peerId = isRequester ? selectedSession.helper_id : selectedSession.requester_id;
 
       // 1. Check localStorage first for instant 0ms user profile rendering
       const cached = getCachedSessionPeer(selectedSession.id) || getCachedUserProfile(peerId);
@@ -359,7 +378,7 @@ const ChatPage = () => {
           name: cached.name,
           avatar: cached.avatar || cached.avatarUrl,
           avatarUrl: cached.avatarUrl || cached.avatar,
-          role: cached.role || (String(currentUserId) === String(selectedSession.requester_id) ? "helper" : "requester"),
+          role: cached.role || (isRequester ? "helper" : "requester"),
         });
       } else if (selectedSession.peer_name) {
         setChatUser({
@@ -367,7 +386,7 @@ const ChatPage = () => {
           name: selectedSession.peer_name,
           avatar: selectedSession.peer_avatar,
           avatarUrl: selectedSession.peer_avatar,
-          role: String(currentUserId) === String(selectedSession.requester_id) ? "helper" : "requester",
+          role: isRequester ? "helper" : "requester",
         });
       }
 
@@ -400,8 +419,8 @@ const ChatPage = () => {
       // 2. Derive E2EE Session Key
       let derivedKey: CryptoKey | null = null;
       try {
-        const initRes = await initializeUserCryptoKeys(currentUserId);
-        const myPrivateKey = initRes?.privateKey || (await getLocalPrivateKey(currentUserId));
+        const initRes = await initializeUserCryptoKeys(myId);
+        const myPrivateKey = initRes?.privateKey || (await getLocalPrivateKey(myId));
 
         const peerPublicKeyJwk = await fetchUserPublicKey(peerId);
 
@@ -432,6 +451,11 @@ const ChatPage = () => {
           let content = raw.content;
           if (derivedKey && content && raw.message_type !== "call") {
             content = await decryptChatMessage(content, derivedKey);
+          } else if (!derivedKey && content && raw.message_type !== "call") {
+            const trimmed = typeof content === "string" ? content.trim() : "";
+            if (trimmed.startsWith("{") && trimmed.includes('"ct"') && trimmed.includes('"iv"')) {
+              content = "🔒 [Encrypted message - waiting for keys]";
+            }
           }
           return {
             id: String(raw.id),
@@ -552,12 +576,14 @@ const ChatPage = () => {
   const handleSendMessage = async (textToSend: string) => {
     if (!selectedSession) return;
 
+    const myId = String(currentUserId || getStoredUserId());
+
     // 1. Push an optimistic message immediately so the UI feels instant
     const optimisticId = `pending-${Date.now()}`;
     const optimisticMsg: Message = {
       id: optimisticId,
       sessionId: String(selectedSession.id),
-      senderId: currentUserId,
+      senderId: myId,
       content: textToSend,
       messageType: "text",
       createdAt: new Date().toISOString(),
@@ -583,13 +609,15 @@ const ChatPage = () => {
   const handleSendMedia = async (file: File, caption: string) => {
     if (!selectedSession) return;
 
+    const myId = String(currentUserId || getStoredUserId());
+
     // Show an optimistic bubble while the upload is in-flight
     const optimisticId = `pending-${Date.now()}`;
     const localPreviewUrl = URL.createObjectURL(file);
     const optimisticMsg: Message = {
       id: optimisticId,
       sessionId: String(selectedSession.id),
-      senderId: currentUserId,
+      senderId: myId,
       content: caption,
       messageType: file.type.startsWith("video/") ? "video" : "image",
       mediaUrl: localPreviewUrl,
