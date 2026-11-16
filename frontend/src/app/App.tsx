@@ -58,13 +58,19 @@ const App = () => {
       senderName: string;
       preview: string;
     }) => {
-      console.log("notification received!")
+      console.log("notification received!");
+      const rawPreview = data.preview || "Sent a message";
+      const cleanPreview = rawPreview.replace(/🔒\s*/g, "").replace(/encrypted\s*/gi, "").trim();
+      const notificationText = cleanPreview.toLowerCase().startsWith("sent")
+        ? `${data.senderName} ${cleanPreview.toLowerCase()}`
+        : `${data.senderName}: ${cleanPreview}`;
+
       setNotification({
         open: true,
         type: "session",
         sessionId: data.sessionId,
         communityId: null,
-        message: `${data.senderName}: ${data.preview}`,
+        message: notificationText,
       });
 
       // Acknowledge delivery
@@ -304,7 +310,11 @@ const App = () => {
             </Button>
           }
         >
-          {notification.type === "meeting" ? "Meeting invite" : notification.type}
+          {notification.type === "meeting"
+            ? "Meeting invite"
+            : notification.type === "session"
+            ? "New message"
+            : "Community update"}
         </Alert>
       </Snackbar>
       <Navbar

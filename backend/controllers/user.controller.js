@@ -10,6 +10,8 @@ import {
   upsertUserCryptoKeys,
   getUserPublicKey,
   getUserCryptoKeys,
+  encryptPrivateKeyAtRest,
+  decryptPrivateKeyAtRest,
 } from "../services/user.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -179,7 +181,7 @@ export const updateAvatarController = async (req, res, next) => {
 export const saveUserCryptoKeysController = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { publicKey, encryptedPrivateKey, keySalt, keyIv } = req.body;
+    const { publicKey, privateKey, encryptedPrivateKey, keySalt, keyIv } = req.body;
 
     if (!publicKey) {
       return res.status(400).json({
@@ -188,18 +190,55 @@ export const saveUserCryptoKeysController = async (req, res) => {
       });
     }
 
+    // Check if user ALREADY has keys stored
+    const existing = await getUserCryptoKeys(userId);
+    if (existing) {
+      const existingDecrypted = decryptPrivateKeyAtRest(existing.encrypted_private_key);
+      if (existingDecrypted) {
+        // Return existing keys without overwriting!
+        return res.status(200).json({
+          success: true,
+          message: "Keys already exist for user",
+          data: {
+            userId: existing.user_id,
+            publicKey: existing.public_key,
+            privateKey: existingDecrypted,
+          },
+        });
+      }
+    }
+
+    // Encrypt private key at rest if provided
+    let finalEncryptedPrivate = encryptedPrivateKey ?? null;
+    if (privateKey) {
+      const privStr = typeof privateKey === "object" ? JSON.stringify(privateKey) : privateKey;
+      finalEncryptedPrivate = encryptPrivateKeyAtRest(privStr);
+    }
+
     const savedKeys = await upsertUserCryptoKeys(
       userId,
       typeof publicKey === "object" ? JSON.stringify(publicKey) : publicKey,
-      encryptedPrivateKey ?? null,
+      finalEncryptedPrivate,
       keySalt ?? null,
       keyIv ?? null
     );
 
+    let returnPrivateKey = null;
+    if (privateKey) {
+      returnPrivateKey = typeof privateKey === "object" ? privateKey : JSON.parse(privateKey);
+    } else if (savedKeys.encrypted_private_key) {
+      const decrypted = decryptPrivateKeyAtRest(savedKeys.encrypted_private_key);
+      returnPrivateKey = decrypted ? JSON.parse(decrypted) : null;
+    }
+
     return res.status(200).json({
       success: true,
       message: "Crypto keys saved successfully",
-      data: savedKeys,
+      data: {
+        userId: savedKeys.user_id,
+        publicKey: savedKeys.public_key,
+        privateKey: returnPrivateKey,
+      },
     });
   } catch (err) {
     console.error("Error saving crypto keys:", err);
@@ -253,11 +292,24 @@ export const getMyCryptoKeysController = async (req, res) => {
       });
     }
 
+    let privateKeyJwk = null;
+    if (keyData.encrypted_private_key) {
+      const decrypted = decryptPrivateKeyAtRest(keyData.encrypted_private_key);
+      if (decrypted) {
+        try {
+          privateKeyJwk = JSON.parse(decrypted);
+        } catch {
+          privateKeyJwk = decrypted;
+        }
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         userId: keyData.user_id,
         publicKey: keyData.public_key,
+        privateKey: privateKeyJwk,
         encryptedPrivateKey: keyData.encrypted_private_key,
         keySalt: keyData.key_salt,
         keyIv: keyData.key_iv,

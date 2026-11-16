@@ -1,4 +1,46 @@
 import { pool } from "../config/db.js";
+import crypto from "crypto";
+
+const getCryptoKey = () => {
+  const secret = process.env.JWT_SECRET || "socius-master-secret-key-69";
+  return crypto.createHash("sha256").update(secret).digest();
+};
+
+export const encryptPrivateKeyAtRest = (privateKeyJwkString) => {
+  if (!privateKeyJwkString) return null;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getCryptoKey(), iv);
+  let encrypted = cipher.update(privateKeyJwkString, "utf8", "base64");
+  encrypted += cipher.final("base64");
+  const tag = cipher.getAuthTag().toString("base64");
+  return JSON.stringify({
+    ct: encrypted,
+    iv: iv.toString("base64"),
+    tag: tag,
+    v: "server-gcm-1",
+  });
+};
+
+export const decryptPrivateKeyAtRest = (storedPayload) => {
+  if (!storedPayload) return null;
+  try {
+    const parsed = JSON.parse(storedPayload);
+    if (parsed.v === "server-gcm-1" && parsed.ct && parsed.iv && parsed.tag) {
+      const decipher = crypto.createDecipheriv(
+        "aes-256-gcm",
+        getCryptoKey(),
+        Buffer.from(parsed.iv, "base64")
+      );
+      decipher.setAuthTag(Buffer.from(parsed.tag, "base64"));
+      let decrypted = decipher.update(parsed.ct, "base64", "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    }
+  } catch {
+    // not server encrypted
+  }
+  return null;
+};
 
 export const getUserById = async (id) => {
   const userQuery = `
@@ -243,10 +285,10 @@ export const upsertUserCryptoKeys = async (
     INSERT INTO user_crypto_keys (user_id, public_key, encrypted_private_key, key_salt, key_iv, updated_at)
     VALUES ($1, $2, $3, $4, $5, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
-      public_key = EXCLUDED.public_key,
-      encrypted_private_key = COALESCE(EXCLUDED.encrypted_private_key, user_crypto_keys.encrypted_private_key),
-      key_salt = COALESCE(EXCLUDED.key_salt, user_crypto_keys.key_salt),
-      key_iv = COALESCE(EXCLUDED.key_iv, user_crypto_keys.key_iv),
+      public_key = COALESCE(user_crypto_keys.public_key, EXCLUDED.public_key),
+      encrypted_private_key = COALESCE(user_crypto_keys.encrypted_private_key, EXCLUDED.encrypted_private_key),
+      key_salt = COALESCE(user_crypto_keys.key_salt, EXCLUDED.key_salt),
+      key_iv = COALESCE(user_crypto_keys.key_iv, EXCLUDED.key_iv),
       updated_at = NOW()
     RETURNING user_id, public_key, encrypted_private_key, key_salt, key_iv;
   `;

@@ -324,72 +324,113 @@ export async function decryptChatMessage(
 
 export async function initializeUserCryptoKeys(
   userId: string | number,
-  password?: string
+  _password?: string
 ): Promise<{ privateKey: CryptoKey; publicKeyJwk: JsonWebKey } | null> {
   const uid = String(userId);
 
-  // 1. Check local IndexedDB
+  // 1. Fetch authoritative account keys from server (User-Based E2EE)
+  let serverPublicKey: JsonWebKey | null = null;
+  let serverPrivateKey: JsonWebKey | null = null;
+
   try {
-    const localPrivateKey = await getLocalPrivateKey(uid);
-    if (localPrivateKey) {
-      try {
-        const res = await api.get(`/api/users/${uid}/public-key`);
-        if (res.data?.success && res.data?.data?.publicKey) {
-          const pubJwk =
-            typeof res.data.data.publicKey === "string"
-              ? JSON.parse(res.data.data.publicKey)
-              : res.data.data.publicKey;
-          return { privateKey: localPrivateKey, publicKeyJwk: pubJwk };
-        }
-      } catch {
-        // If server doesn't have it, we can re-export or upload below
+    const res = await api.get("/api/users/keys/me");
+    if (res.data?.success && res.data?.data) {
+      if (res.data.data.publicKey) {
+        serverPublicKey =
+          typeof res.data.data.publicKey === "string"
+            ? JSON.parse(res.data.data.publicKey)
+            : res.data.data.publicKey;
+      }
+      if (res.data.data.privateKey) {
+        serverPrivateKey =
+          typeof res.data.data.privateKey === "string"
+            ? JSON.parse(res.data.data.privateKey)
+            : res.data.data.privateKey;
       }
     }
   } catch (err) {
-    console.warn("Could not retrieve local private key:", err);
+    console.warn("Could not fetch user crypto keys from server:", err);
   }
 
-  // 2. Not in local IndexedDB: check if backup exists on server
-  try {
-    const backupRes = await api.get("/api/users/keys/me");
-    if (backupRes.data?.success && backupRes.data?.data?.encryptedPrivateKey && password) {
-      const { encryptedPrivateKey, keySalt, keyIv, publicKey } = backupRes.data.data;
-      const unwrappedKey = await unwrapPrivateKey(
-        encryptedPrivateKey,
-        password,
-        keySalt,
-        keyIv
+  // Case A: Server has both public and private keys -> Import and sync to local IndexedDB
+  if (serverPublicKey && serverPrivateKey) {
+    try {
+      const importedPrivateKey = await window.crypto.subtle.importKey(
+        "jwk",
+        serverPrivateKey,
+        { name: "ECDH", namedCurve: "P-256" },
+        true,
+        ["deriveKey", "deriveBits"]
       );
-      await saveLocalPrivateKey(uid, unwrappedKey);
-      const pubJwk = typeof publicKey === "string" ? JSON.parse(publicKey) : publicKey;
-      return { privateKey: unwrappedKey, publicKeyJwk: pubJwk };
+      await saveLocalPrivateKey(uid, importedPrivateKey);
+      return { privateKey: importedPrivateKey, publicKeyJwk: serverPublicKey };
+    } catch (importErr) {
+      console.error("Failed to import server private key:", importErr);
     }
-  } catch {
-    // No backup on server or request failed
   }
 
-  // 3. If still no key, generate fresh key pair
+  // Case B: Local device has a private key in IndexedDB (e.g. from existing chat session)
+  try {
+    const localPrivateKey = await getLocalPrivateKey(uid);
+    if (localPrivateKey) {
+      const privJwk = await window.crypto.subtle.exportKey("jwk", localPrivateKey);
+      let pubJwk = serverPublicKey;
+      if (!pubJwk) {
+        pubJwk = await fetchUserPublicKey(uid);
+      }
+      if (pubJwk) {
+        try {
+          await api.post("/api/users/keys", {
+            publicKey: JSON.stringify(pubJwk),
+            privateKey: JSON.stringify(privJwk),
+          });
+        } catch (syncErr) {
+          console.warn("Could not sync local private key to server:", syncErr);
+        }
+        return { privateKey: localPrivateKey, publicKeyJwk: pubJwk };
+      }
+    }
+  } catch (localErr) {
+    console.warn("Could not access local private key:", localErr);
+  }
+
+  // Case C: Brand new user account -> Generate key pair once and persist
   try {
     const keyPair = await generateIdentityKeyPair();
-    const publicJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+    const pubJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
+    const privJwk = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
 
-    let wrapped: WrappedPrivateKeyPayload | null = null;
-    if (password) {
-      wrapped = await exportAndWrapPrivateKey(keyPair.privateKey, password);
-    }
-
-    // Save private key in IndexedDB
+    // Save locally in IndexedDB
     await saveLocalPrivateKey(uid, keyPair.privateKey);
 
-    // Upload public key and wrapped private key to backend
-    await api.post("/api/users/keys", {
-      publicKey: JSON.stringify(publicJwk),
-      encryptedPrivateKey: wrapped?.encryptedPrivateKey || null,
-      keySalt: wrapped?.keySalt || null,
-      keyIv: wrapped?.keyIv || null,
+    // Upload to server
+    const saveRes = await api.post("/api/users/keys", {
+      publicKey: JSON.stringify(pubJwk),
+      privateKey: JSON.stringify(privJwk),
     });
 
-    return { privateKey: keyPair.privateKey, publicKeyJwk: publicJwk };
+    // If server already had authoritative keys, use server keys
+    if (saveRes.data?.data?.privateKey) {
+      const sPriv =
+        typeof saveRes.data.data.privateKey === "string"
+          ? JSON.parse(saveRes.data.data.privateKey)
+          : saveRes.data.data.privateKey;
+      const sPub =
+        typeof saveRes.data.data.publicKey === "string"
+          ? JSON.parse(saveRes.data.data.publicKey)
+          : saveRes.data.data.publicKey;
+      const imported = await window.crypto.subtle.importKey(
+        "jwk",
+        sPriv,
+        { name: "ECDH", namedCurve: "P-256" },
+        true,
+        ["deriveKey", "deriveBits"]
+      );
+      await saveLocalPrivateKey(uid, imported);
+      return { privateKey: imported, publicKeyJwk: sPub };
+    }
+
+    return { privateKey: keyPair.privateKey, publicKeyJwk: pubJwk };
   } catch (err) {
     console.error("Failed to generate or upload identity keys:", err);
     return null;

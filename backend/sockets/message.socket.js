@@ -226,12 +226,16 @@ export const registerMessageEvents = (io, socket) => {
             const room = `user-${participant.user_id}`;
 
             console.log(room, io.sockets.adapter.rooms.get(room));
-            const notificationPreview =
-              type === "session"
-                ? fullMessage.message_type === "text"
-                  ? "🔒 New encrypted message"
-                  : "🔒 Sent a media file"
-                : fullMessage.content;
+            let notificationPreview = "Sent a message";
+            if (fullMessage.message_type === "image" || (fullMessage.media_mime_type && fullMessage.media_mime_type.startsWith("image/"))) {
+              notificationPreview = "Sent a photo";
+            } else if (fullMessage.message_type === "video" || (fullMessage.media_mime_type && fullMessage.media_mime_type.startsWith("video/"))) {
+              notificationPreview = "Sent a video";
+            } else if (fullMessage.message_type && fullMessage.message_type !== "text") {
+              notificationPreview = "Sent an attachment";
+            } else if (type === "community") {
+              notificationPreview = fullMessage.content || "Sent a message";
+            }
 
             io.to(`user-${participant.user_id}`).emit(event, {
               messageId: fullMessage.id,

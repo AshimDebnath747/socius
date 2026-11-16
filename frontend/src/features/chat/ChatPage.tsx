@@ -400,11 +400,8 @@ const ChatPage = () => {
       // 2. Derive E2EE Session Key
       let derivedKey: CryptoKey | null = null;
       try {
-        let myPrivateKey = await getLocalPrivateKey(currentUserId);
-        if (!myPrivateKey) {
-          const initRes = await initializeUserCryptoKeys(currentUserId);
-          myPrivateKey = initRes?.privateKey || null;
-        }
+        const initRes = await initializeUserCryptoKeys(currentUserId);
+        const myPrivateKey = initRes?.privateKey || (await getLocalPrivateKey(currentUserId));
 
         const peerPublicKeyJwk = await fetchUserPublicKey(peerId);
 
